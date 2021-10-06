@@ -1,9 +1,10 @@
 import requests
-from pprint import pprint
 
 
 class YaUpLoader:
-
+    """
+    Класс для работы с сервисом Яндекс диск
+    """
     def __init__(self, token):
         self.token = token
 
@@ -14,6 +15,10 @@ class YaUpLoader:
         }
 
     def get_files_list(self):
+        """
+        Метод получения списка файлов
+        :return: список файлов в формате json
+        """
         files_url = 'https://cloud-api.yandex.net/v1/disk/resources/files'
         headers = self.get_headers()
         response = requests.get(files_url, headers=headers)
