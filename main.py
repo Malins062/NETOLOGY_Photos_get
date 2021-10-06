@@ -21,9 +21,8 @@ commands = [{'1': ('Яндекс диск;', 1, 'https://yandex.ru/dev/disk/poli
 
 def main(cmd):
     """
-    Функция основного меню, с реагирование на команды поданного списка cmd
-    :param cmd: команды меню и функции реагирования к каждой команде
-    :return:
+    Функция основного меню и подменю, с реагированием на команды поданного списка cmd
+    :param cmd: команды меню и необходимые значения для реагирования к каждой команде
     """
 
     # Признак не существующей команды меню
@@ -71,6 +70,7 @@ def main(cmd):
             is_menu_out = False
             while not is_menu_out:
                 init_screen()
+                print(f'Хранилище импортируемых фотографий: {status_command["destination"][2]}.')
                 print('Выберите источник копирования фотографий:')
                 for key_command, name_command in cmd[1].items():
                     print(f'\t{key_command} – {name_command[0]}')
@@ -92,7 +92,7 @@ def main(cmd):
                 else:
                     init_screen()
                     print(f'Источник импорта фотографий: {status_command["resource"][2]}.')
-                    print(f'Хранилище фотографий: {status_command["destination"][2]}.')
+                    print(f'Хранилище импортируемых фотографий: {status_command["destination"][2]}.')
                     exit(0)
     return "До встречи!"
 
