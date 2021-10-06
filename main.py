@@ -1,8 +1,9 @@
 # Курсовая работа «Резервное копирование» первого блока «Основы языка программирования Python».
 import os
+from cloud_services import YaUpLoader
 
 # Название программы, выводимое на экран
-TITLE_PROGRAM = '--- ФОТОКОПИРОВАНИЕ НА СЕРВИС ОБЛАЧНЫЙ СЕРВИС ---'
+TITLE_PROGRAM = '--- РЕЗЕРВНОЕ КОПИРОВАНИЕ ФОТОМАТЕРИАЛОВ НА ОБЛАЧНЫЙ СЕРВИС ---'
 
 
 # Список допустимых команд программы, их описание и определение запускаемых функций
@@ -120,6 +121,17 @@ def input_data(destination, resource):
         return False
     else:
         return {'resource': resource, 'destination': destination}
+
+
+def photos_get(resource):
+    pass
+
+
+def photo_download(file_name, token):
+    token = ''
+    uploader = YaUpLoader(token)
+    uploader.upload_file_to_disk(path_disk + '/' + filename, filename)
+    return None
 
 
 if __name__ == '__main__':
