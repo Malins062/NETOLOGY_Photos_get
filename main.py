@@ -6,17 +6,25 @@ TITLE_PROGRAM = '--- ФОТОКОПИРОВАНИЕ НА СЕРВИС ОБЛАЧ
 
 
 # Список допустимых команд программы, их описание и определение запускаемых функций
-commands = [{'1': ('Яндекс диск;', 1, 'https://yandex.ru/dev/disk/poligon/'),
-             '2': ('Google drive;', 2, 'GoogleDrive API'),
-             '0': ('выход из программы.\n', 0)
+commands = [{'1': ['Яндекс диск;', 1, {'name': 'Яндекс диск', 'url': 'https://yandex.ru/dev/disk/poligon/'}],
+             '2': ['Google drive;', 2, {'name': 'GoogleDrive API', 'url': ''}],
+             '0': ['выход из программы.\n', 0]
              },
-            {'1': ('ВКонтакте;', 1, 'https://vk.com/dev/photos.get'),
-             '2': ('Однокласники;', 2, 'https://apiok.ru/'),
-             '3': ('Инстаграмм', 3, 'https://www.instagram.com/developer/'),
-             '9': ('возврат в предыдущее меню;', 9, 'Up'),
-             '0': ('выход из программы.\n', 0)
+            {'1': ['ВКонтакте;', 1, {'name': 'ВКонтакте', 'url': 'https://vk.com/dev/photos.get'}],
+             '2': ['Однокласники;', 2, {'name': 'Одноклассники', 'url': 'https://apiok.ru/'}],
+             '3': ['Инстаграмм', 3, {'name': 'Инстаграмм', 'url': 'https://www.instagram.com/developer/'}],
+             '9': ['возврат в предыдущее меню;', 9, 'Up'],
+             '0': ['выход из программы.\n', 0]
              }
             ]
+
+
+def init_screen():
+    """
+    Функция очистки экрана пользователя и вывода заставки
+    """
+    os.system('cls||clear')
+    print(f'{TITLE_PROGRAM}\n')
 
 
 def main(cmd):
@@ -28,13 +36,6 @@ def main(cmd):
     # Признак не существующей команды меню
     error_command = 'Invalid'
 
-    def init_screen():
-        """
-        Функция очистки экрана пользователя и вывода заставки
-        """
-        os.system('cls||clear')
-        print(f'{TITLE_PROGRAM}\n')
-
     def invalid_command(err_cmd):
         """
         Вывод ошибки на экран, при вводе неверной команды
@@ -45,9 +46,9 @@ def main(cmd):
 
     # Параметры текущей, выбранной команды:
     #       destination - ресурс назначения комирования фотографий
-    #       resource - ресурс откуда необходимо копиравть фотографии
-    status_command = {'destination': '',
-                      'resource': ''
+    #       resource - ресурс откуда необходимо копировать фотографии
+    status_command = {'destination': [],
+                      'resource': []
                       }
     is_exit = False
     while not is_exit:
@@ -70,7 +71,8 @@ def main(cmd):
             is_menu_out = False
             while not is_menu_out:
                 init_screen()
-                print(f'Хранилище импортируемых фотографий: {status_command["destination"][2]}.')
+                print(f'Хранилище импортируемых фотографий: {status_command["destination"][2]["name"]} - '
+                      f'{status_command["destination"][2]["url"]}.')
                 print('Выберите источник копирования фотографий:')
                 for key_command, name_command in cmd[1].items():
                     print(f'\t{key_command} – {name_command[0]}')
@@ -91,10 +93,33 @@ def main(cmd):
                     is_menu_out = True
                 else:
                     init_screen()
-                    print(f'Источник импорта фотографий: {status_command["resource"][2]}.')
-                    print(f'Хранилище импортируемых фотографий: {status_command["destination"][2]}.')
-                    exit(0)
+                    data_for_copy = input_data(status_command["destination"][2], status_command["resource"][2])
+                    if isinstance(data_for_copy, dict):
+                        print(data_for_copy)
+                        input('press any key')
+
     return "До встречи!"
+
+
+def input_data(destination, resource):
+    """
+    Функция ввода дополнительных необходмых параметров:
+     1) ID пользователя, от которого будет производится импорт фотографий;
+     2) TOKEN пользователя, кому будут сохраняться фотографии
+    :param destination: параметры хранилища фотографий (name, url, token)
+    :param resource: параметры источника импорта фотографий (name, url, id)
+    :return: dict - словарь с итоговыми параметрами destination и resource
+    """
+    print(f'Источник импорта фотографий: {resource["name"]} - {resource["url"]}.')
+    print(f'Хранилище импортируемых фотографий: {destination["name"]} - {destination["url"]}.')
+    destination["id"] = input('Введите ID пользователя (0 - для отмены): ').strip()
+    if destination["id"] == '0':
+        return False
+    resource["token"] = input('Введите TOKEN пользователя (0 - для отмены): ').strip()
+    if resource["token"].strip() == '0':
+        return False
+    else:
+        return {'resource': resource, 'destination': destination}
 
 
 if __name__ == '__main__':
