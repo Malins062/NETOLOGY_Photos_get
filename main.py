@@ -1,18 +1,20 @@
 # Курсовая работа «Резервное копирование» первого блока «Основы языка программирования Python».
 import os
+# import pandas as pd
 # from cloud_services import YaUpLoader
-from vk_api import VK
+from pprint import pprint
+from vk_api import VKUser
 
 # Название программы, выводимое на экран
 TITLE_PROGRAM = '--- РЕЗЕРВНОЕ КОПИРОВАНИЕ ФОТОМАТЕРИАЛОВ НА ОБЛАЧНЫЙ СЕРВИС ---'
 
 
-# Список допустимых команд программы, их описание и определение запускаемых функций
+# Список допустимых команд программы, их описание и назначение необходимых параметров для каждого пункта
 commands = [{'1': ['Яндекс диск;', 1, {'name': 'Яндекс диск', 'url': 'https://yandex.ru/dev/disk/poligon/'}],
              '2': ['Google drive;', 2, {'name': 'GoogleDrive API', 'url': ''}],
              '0': ['выход из программы.\n', 0]
              },
-            {'1': ['ВКонтакте;', 1, {'name': 'ВКонтакте', 'url': 'https://api.vk.com/method/'}],
+            {'1': ['ВКонтакте;', 1, {'name': 'ВКонтакте', 'url': 'https://api.vk.com/method/', 'version': '5.131'}],
              '2': ['Однокласники;', 2, {'name': 'Одноклассники', 'url': 'https://api.ok.ru/api/'}],
              '3': ['Инстаграмм', 3, {'name': 'Инстаграмм', 'url': 'https://www.instagram.com/developer/'}],
              '9': ['возврат в предыдущее меню;', 9, 'Up'],
@@ -49,8 +51,8 @@ def main(cmd):
     # Параметры текущей, выбранной команды:
     #       destination - ресурс назначения комирования фотографий
     #       resource - ресурс откуда необходимо копировать фотографии
-    status_command = {'destination': [],
-                      'resource': []
+    status_command = {'destination': {},
+                      'resource': {}
                       }
     is_exit = False
     while not is_exit:
@@ -97,9 +99,9 @@ def main(cmd):
                     init_screen()
                     data_for_copy = input_data(status_command["destination"][2], status_command["resource"][2])
                     if isinstance(data_for_copy, dict):
-                        print(data_for_copy)
+                        # print(data_for_copy)
+                        photos_get(status_command['resource'][2])
                         input('press any key')
-
     return "До встречи!"
 
 
@@ -114,8 +116,8 @@ def input_data(destination, resource):
     """
     print(f'Источник импорта фотографий: {resource["name"]} - {resource["url"]}.')
     print(f'Хранилище импортируемых фотографий: {destination["name"]} - {destination["url"]}.')
-    destination["id"] = input('Введите ID пользователя (0 - для отмены): ').strip()
-    if destination["id"] == '0':
+    resource["id"] = input('Введите ID пользователя (0 - для отмены): ').strip()
+    if resource["id"] == '0':
         return False
     resource["token"] = input('Введите TOKEN пользователя (0 - для отмены): ').strip()
     if resource["token"].strip() == '0':
@@ -125,6 +127,12 @@ def input_data(destination, resource):
 
 
 def photos_get(resource):
+    resource['id'] = 59793098
+    resource['token'] = 'd0b3802a130f65e6270d806e2bb62bce7de7897773f9d825c1ff153ee9cf13bd6cf830fb576fb5d081663'
+    client_vk = VKUser(resource['url'], resource['token'], resource['version'])
+    pprint(client_vk.get_photos(resource['id'], 'saved'))
+
+    print(client_vk)
     pass
 
 
