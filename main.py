@@ -1,6 +1,7 @@
 # Курсовая работа «Резервное копирование» первого блока «Основы языка программирования Python».
 import os
-from cloud_services import YaUpLoader
+# from cloud_services import YaUpLoader
+from vk_api import VK
 
 # Название программы, выводимое на экран
 TITLE_PROGRAM = '--- РЕЗЕРВНОЕ КОПИРОВАНИЕ ФОТОМАТЕРИАЛОВ НА ОБЛАЧНЫЙ СЕРВИС ---'
@@ -11,7 +12,7 @@ commands = [{'1': ['Яндекс диск;', 1, {'name': 'Яндекс диск'
              '2': ['Google drive;', 2, {'name': 'GoogleDrive API', 'url': ''}],
              '0': ['выход из программы.\n', 0]
              },
-            {'1': ['ВКонтакте;', 1, {'name': 'ВКонтакте', 'url': 'https://vk.com/dev/photos.get'}],
+            {'1': ['ВКонтакте;', 1, {'name': 'ВКонтакте', 'url': 'https://api.vk.com/method/'}],
              '2': ['Однокласники;', 2, {'name': 'Одноклассники', 'url': 'https://api.ok.ru/api/'}],
              '3': ['Инстаграмм', 3, {'name': 'Инстаграмм', 'url': 'https://www.instagram.com/developer/'}],
              '9': ['возврат в предыдущее меню;', 9, 'Up'],
