@@ -12,8 +12,8 @@ class VKUser:
     def __str__(self):
         return f'Адрес: {self.url}.\n' \
                f'Параметры:\n' \
-               f'\t* версия - {self.params["v"]}\n' \
-               f'\t* сервисный ключ - {self.params["access_token"]}\n'
+               f'\t* версия протокола - {self.params["v"]}\n' \
+               f'\t* ключ доступа - {self.params["access_token"]}\n'
 
     def get_photos(self, owner_id=None, album_id='profile'):
         photos_url = self.url + 'photos.get'
@@ -26,18 +26,13 @@ class VKUser:
         if 'error' in res:
             return res['error']
         elif 'response' in res and 'items' in res['response']:
-            return res['response']['items']
+            list_files = {}
+            for f in res['response']['items']:
+                name_file = str(f['id']) + '_' + str(f['likes']['count']) + '.jpg'
+                list_files['file_name'] = name_file
+                list_files['size'] = max(f['sizes'], key=f['sizes']['height'])
+                # list_files['url'] = f['sizes']
+            # list_files = {f['id'] + str(f['likes']['count']) + '.jpg': '' for f in res['response']['items']}
+            return list_files
         else:
             return res
-
-    def get_groups(self, user_id=None):
-        groups_url = self.url + 'groups.get'
-        groups_params = {
-            'count': 1000,
-            'user_id': user_id,
-            'extended': 1,
-            'fields': 'members_count'
-        }
-        res = requests.get(groups_url, params={**self.params, **groups_params})
-        return res.json()
-

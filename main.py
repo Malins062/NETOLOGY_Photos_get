@@ -101,7 +101,7 @@ def main(cmd):
                     if isinstance(data_for_copy, dict):
                         # print(data_for_copy)
                         photos_get(status_command['resource'][2])
-                        input('press any key')
+                        input('Для продолжения работы нажмите клавишу "Enter"...')
     return "До встречи!"
 
 
@@ -127,20 +127,19 @@ def input_data(destination, resource):
 
 
 def photos_get(resource):
-    resource['id'] = 59793098
-    resource['token'] = 'd0b3802a130f65e6270d806e2bb62bce7de7897773f9d825c1ff153ee9cf13bd6cf830fb576fb5d081663'
-    client_vk = VKUser(resource['url'], resource['token'], resource['version'])
-    pprint(client_vk.get_photos(resource['id'], 'saved'))
-
-    print(client_vk)
-    pass
+    print(f'\n1. ВХОДНЫЕ ДАННЫЕ\nРесурс импорта - {resource["name"]}\nПараметры:')
+    if resource["name"] == 'ВКонтакте':
+        resource['id'] = 552934290
+        resource['token'] = '958eb5d439726565e9333aa30e50e0f937ee432e927f0dbd541c541887d919a7c56f95c04217915c32008'
+        # resource['id'] = 59793098
+        # resource['token'] = 'd0b3802a130f65e6270d806e2bb62bce7de7897773f9d825c1ff153ee9cf13bd6cf830fb576fb5d081663'
+        client_vk = VKUser(resource['url'], resource['token'], resource['version'])
+        print(client_vk)
+        pprint(client_vk.get_photos(resource['id']))
 
 
 def photo_download(file_name, token):
-    token = ''
-    uploader = YaUpLoader(token)
-    uploader.upload_file_to_disk(path_disk + '/' + filename, filename)
-    return None
+    pass
 
 
 if __name__ == '__main__':
