@@ -1,13 +1,11 @@
 # Курсовая работа «Резервное копирование» первого блока «Основы языка программирования Python».
 import os
-# import pandas as pd
-# from cloud_services import YaUpLoader
+import pandas as pd
 from pprint import pprint
 from vk_api import VKUser
 
 # Название программы, выводимое на экран
 TITLE_PROGRAM = '--- РЕЗЕРВНОЕ КОПИРОВАНИЕ ФОТОМАТЕРИАЛОВ НА ОБЛАЧНЫЙ СЕРВИС ---'
-
 
 # Список допустимых команд программы, их описание и назначение необходимых параметров для каждого пункта
 commands = [{'1': ['Яндекс диск;', 1, {'name': 'Яндекс диск', 'url': 'https://yandex.ru/dev/disk/poligon/'}],
@@ -97,10 +95,21 @@ def main(cmd):
                     is_menu_out = True
                 else:
                     init_screen()
+
+                    # Ввод необходимых данных ID-пользователя и ключа доступа к ресурсу
                     data_for_copy = input_data(status_command["destination"][2], status_command["resource"][2])
+
                     if isinstance(data_for_copy, dict):
-                        # print(data_for_copy)
-                        photos_get(status_command['resource'][2])
+                        print(f'\n1. ВХОДНЫЕ ДАННЫЕ.\nРесурс импорта - {status_command["resource"][2]["name"]}\n')
+                        files_to_download = photos_get(status_command['resource'][2])
+
+                        print('2. СЧИТАННЫЕ ДАННЫЕ.')
+                        if len(files_to_download) > 0:
+                            print('\nСписок доступных фотографий для скачивания:')
+                            print_list_files(files_to_download)
+                        else:
+                            print('\nНет доступных фотографий для скачивания!')
+
                         input('Для продолжения работы нажмите клавишу "Enter"...')
     return "До встречи!"
 
@@ -126,16 +135,42 @@ def input_data(destination, resource):
         return {'resource': resource, 'destination': destination}
 
 
-def photos_get(resource):
-    print(f'\n1. ВХОДНЫЕ ДАННЫЕ\nРесурс импорта - {resource["name"]}\nПараметры:')
+def photos_get(resource) -> list:
+    """
+    Функция считывания списка доступных файлов для скачивания с сетевых ресурсов
+    :param resource: входные параметры выбранного сетевого ресурса
+    :return: список доступных файлов для скачивания c заданного сетевого ресурса,
+    если ресурс не в спсике допустимых - возращаект пустой список
+    """
+
     if resource["name"] == 'ВКонтакте':
         resource['id'] = 552934290
         resource['token'] = '958eb5d439726565e9333aa30e50e0f937ee432e927f0dbd541c541887d919a7c56f95c04217915c32008'
+
         # resource['id'] = 59793098
         # resource['token'] = 'd0b3802a130f65e6270d806e2bb62bce7de7897773f9d825c1ff153ee9cf13bd6cf830fb576fb5d081663'
+
         client_vk = VKUser(resource['url'], resource['token'], resource['version'])
         print(client_vk)
-        pprint(client_vk.get_photos(resource['id']))
+        return client_vk.get_photos(resource['id'])
+    return []
+
+
+def print_list_files(list_files):
+    """
+    Функция вывода списка list_files на экран в табличном формате с помощью библиотеки Pandas
+    :param list_files: список файлов
+    :return:
+    """
+    frame = pd.DataFrame(list_files, columns=['file_name', 'height', 'width'])
+    # frame['url'] = frame['url'][:20]
+    frame.rename(columns={'file_name': 'Наименование файла',
+                          'width': 'Ширина',
+                          'height': 'Высота',
+                          'url': 'Ссылка на скачинвание'}, inplace=True)
+    frame.index = frame.index + 1
+    frame.columns.name = '№'
+    print(frame, '\n')
 
 
 def photo_download(file_name, token):
