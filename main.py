@@ -97,9 +97,9 @@ def main(cmd):
                     init_screen()
 
                     # Ввод необходимых данных ID-пользователя и ключа доступа к ресурсу
-                    data_for_copy = input_data(status_command["destination"][2], status_command["resource"][2])
+                    # data_for_copy = input_data_for_read(status_command["resource"][2])
 
-                    if isinstance(data_for_copy, dict):
+                    if isinstance(input_data_for_read(status_command["resource"][2]), dict):
                         print(f'\n1. ВХОДНЫЕ ДАННЫЕ.\nРесурс импорта - {status_command["resource"][2]["name"]}\n')
                         files_to_download = photos_get(status_command['resource'][2])
 
@@ -108,23 +108,20 @@ def main(cmd):
                             print('\nСписок доступных фотографий для скачивания:')
                             print_list_files(files_to_download)
                         else:
-                            print('\nНет доступных фотографий для скачивания!')
-
-                        input('Для продолжения работы нажмите клавишу "Enter"...')
+                            print('\nНет доступных фотографий для скачивания!\n')
+                            input('Для продолжения работы нажмите клавишу "Enter"...')
     return "До встречи!"
 
 
-def input_data(destination, resource):
+def input_data_for_read(resource):
     """
-    Функция ввода дополнительных необходмых параметров:
+    Функция ввода дополнительных необходмых параметров чтения с сетевого ресурса:
      1) ID пользователя, от которого будет производится импорт фотографий;
      2) TOKEN пользователя, кому будут сохраняться фотографии
-    :param destination: параметры хранилища фотографий (name, url, token)
     :param resource: параметры источника импорта фотографий (name, url, id)
-    :return: dict - словарь с итоговыми параметрами destination и resource
+    :return: dict - словарь с итоговыми параметрами resource
     """
     print(f'Источник импорта фотографий: {resource["name"]} - {resource["url"]}.')
-    print(f'Хранилище импортируемых фотографий: {destination["name"]} - {destination["url"]}.')
     resource["id"] = input('Введите ID пользователя (0 - для отмены): ').strip()
     if resource["id"] == '0':
         return False
@@ -132,7 +129,23 @@ def input_data(destination, resource):
     if resource["token"].strip() == '0':
         return False
     else:
-        return {'resource': resource, 'destination': destination}
+        return {'resource': resource}
+
+
+def input_data_for_write(destination):
+    """
+    Функция ввода дополнительных необходмых параметров для загрузки на сетевой ресурс:
+     1) ID пользователя, от которого будет производится импорт фотографий;
+     2) TOKEN пользователя, кому будут сохраняться фотографии
+    :param destination: параметры хранилища фотографий (name, url, token)
+    :return: dict - словарь с итоговыми параметрами destination
+    """
+    print(f'Хранилище импортируемых фотографий: {destination["name"]} - {destination["url"]}.')
+    destination["token"] = input('Введите TOKEN пользователя (0 - для отмены): ').strip()
+    if destination["token"].strip() == '0':
+        return False
+    else:
+        return {'destination': destination}
 
 
 def photos_get(resource) -> list:
