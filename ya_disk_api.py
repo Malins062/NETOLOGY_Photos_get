@@ -1,7 +1,7 @@
 import requests
 
 
-class YaUpLoader:
+class YaDiskUser:
     """
     Класс для работы с сервисом Яндекс диск
     """

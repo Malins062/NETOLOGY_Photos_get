@@ -147,9 +147,6 @@ def photos_get(resource) -> list:
         resource['id'] = 552934290
         resource['token'] = '958eb5d439726565e9333aa30e50e0f937ee432e927f0dbd541c541887d919a7c56f95c04217915c32008'
 
-        # resource['id'] = 59793098
-        # resource['token'] = 'd0b3802a130f65e6270d806e2bb62bce7de7897773f9d825c1ff153ee9cf13bd6cf830fb576fb5d081663'
-
         client_vk = VKUser(resource['url'], resource['token'], resource['version'])
         print(client_vk)
         return client_vk.get_photos(resource['id'])
