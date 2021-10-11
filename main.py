@@ -97,8 +97,6 @@ def main(cmd):
                     init_screen()
 
                     # Ввод необходимых данных ID-пользователя и ключа доступа к ресурсу
-                    # data_for_copy = input_data_for_read(status_command["resource"][2])
-
                     if isinstance(input_data_for_read(status_command["resource"][2]), dict):
                         print(f'\n1. ВХОДНЫЕ ДАННЫЕ.\nРесурс импорта - {status_command["resource"][2]["name"]}\n')
                         files_to_download = photos_get(status_command['resource'][2])
@@ -107,6 +105,10 @@ def main(cmd):
                         if len(files_to_download) > 0:
                             print('\nСписок доступных фотографий для скачивания:')
                             print_list_files(files_to_download)
+
+                            # Ввод необходимых данных: ключа доступа к ресурсу на который загружать фотографии
+                            if isinstance(input_data_for_read(status_command["destination"][2]), dict):
+                                input('push ot disk')
                         else:
                             print('\nНет доступных фотографий для скачивания!\n')
                             input('Для продолжения работы нажмите клавишу "Enter"...')
@@ -143,6 +145,10 @@ def input_data_for_write(destination):
     print(f'Хранилище импортируемых фотографий: {destination["name"]} - {destination["url"]}.')
     destination["token"] = input('Введите TOKEN пользователя (0 - для отмены): ').strip()
     if destination["token"].strip() == '0':
+        return False
+
+    destination["files"] = input('Введите количество фотографий для загрузки (0 - для отмены): ').strip()
+    if destination["files"].strip() == '0':
         return False
     else:
         return {'destination': destination}
