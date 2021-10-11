@@ -19,7 +19,13 @@ class VKUser:
                f'\t* версия протокола - {self.params["v"]}\n' \
                f'\t* ключ доступа - {self.params["access_token"]}\n'
 
-    def get_photos(self, owner_id=None, album_id='profile'):
+    def get_photos(self, owner_id=None, album_id='profile') -> list:
+        """
+        Метод создания запроса к странице ВКонтакте для получения списка доступных фотографий
+        :param owner_id: id пользователя страницы ВКонтакте
+        :param album_id: profile, saved или
+        :return: список найденных фотографий или ошибку
+        """
         # URL запроса
         photos_url = self.url + 'photos.get'
         # Параметры запроса
@@ -40,13 +46,24 @@ class VKUser:
         elif 'response' in res and 'items' in res['response']:
             list_files = []
 
+            # Создание словаря лайков фотографий, у которых совпадает количество лайков
+            repeat_likes = {}
+            for value in res['response']['items']:
+                if value['likes']['count'] in repeat_likes:
+                    repeat_likes[value['likes']['count']] += 1
+                else:
+                    repeat_likes[value['likes']['count']] = 1
+
             # Перебор всех данных по ключу 'items'
             for value in res['response']['items']:
                 # Определение самой большой фотографии: сортировка списка фотографий по высоте и ширине
                 file_params = sorted(value['sizes'], key=lambda x: x['height'] + x['width'], reverse=True)[0]
 
                 # Создание имени фотографии в формате: id_likes.jpg
-                file_params['file_name'] = str(value['id']) + '_' + str(value['likes']['count']) + '.jpg'
+                if repeat_likes.get(value['likes']['count'], 0) > 1:
+                    file_params['file_name'] = str(value['likes']['count']) + '_' + str(value['date']) + '.jpg'
+                else:
+                    file_params['file_name'] = str(value['likes']['count']) + '.jpg'
 
                 # Добавление фото в результирующий список
                 list_files.append(file_params)
