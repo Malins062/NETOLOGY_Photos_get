@@ -4,6 +4,7 @@ import time
 import pandas as pd
 # from pprint import pprint
 from vk_api import VKUser
+from ya_disk_api import YaDiskUser
 from progress.bar import IncrementalBar
 
 # Название программы, выводимое на экран
@@ -114,9 +115,14 @@ def main(cmd):
                             print_list_files(files_to_download)
 
                             # Ввод необходимых данных: ключа доступа к ресурсу на который загружать фотографии
-                            if input_data_for_write(status_command["destination"]):
-                                download_files(status_command)
-                                upload_files(status_command)
+                            if input_data_for_write(status_command):
+                                # Проверка куда будут передоваться файлы, если на Яндекс диск, то напрямую
+                                if status_command['destination']['menu_cmd'] == 1:
+                                    upload_files(status_command)
+                                # если на Google drive, то через отдельное скачивание на локальный ресурс
+                                if status_command['destination']['menu_cmd'] == 2:
+                                    download_files(status_command)
+                                    upload_files(status_command)
                                 input('push to disk')
 
                         else:
@@ -140,7 +146,26 @@ def download_files(data):
     return True
 
 
-def upload_files(destination):
+def upload_files(data):
+    print(f'Ожидайте, идет передача файлов на конечный сетевой ресурс {data["destination"]["url"]}...')
+    bar = IncrementalBar('Загрузка: ', max=len(data['destination']['files']))
+    token = ''
+
+    # Проверка на какой ресурся загружать файлы 1 - Яндекс диск, 2 - Google drive
+    if data['destination']['menu_cmd'] == 1:
+        client = YaDiskUser(token)
+    elif data['destination']['menu_cmd'] == 2:
+        client = 'google'
+
+    # Загрузка файлов
+    for f in data['destination']['files']:
+        print(f'Загрузка файла {f["file_name"]} ...', end='')
+        client.upload_file_to_disk(data['destination']['path_disk'] + '/' + f['url'], f['file_name'])
+        print(' УСПЕШНО')
+        bar.next()
+    bar.finish()
+
+    print(f'Загрузка на ресурс {data["destination"]["name"]}: {data["destination"]["url"]} - завершена.')
     return True
 
 
@@ -164,28 +189,40 @@ def input_data_for_read(resource):
         return True
 
 
-def input_data_for_write(destination):
+def input_data_for_write(data):
     """
     Функция ввода дополнительных необходмых параметров для загрузки на сетевой ресурс:
      1) ID пользователя, от которого будет производится импорт фотографий;
      2) TOKEN пользователя, кому будут сохраняться фотографии
-    :param destination: параметры хранилища фотографий (name, url, token)
-    :return: True - если пользователь ввел все необходимые данные + измененный словарь destination
+     3) каталог на сетевом ресурсе, куда будут выгружаться фотографии
+    :param data: параметры хранилища фотографий раздел - destination (name, url, token, path_disk)
+    :return: True - если пользователь ввел все необходимые данные + измененный словарь data
             False - если пользователь ввел 0 - отмену (возврат в предыдущее меню)
     """
-    print(f'Хранилище импортируемых фотографий: {destination["name"]} - {destination["url"]}.')
-    destination["token"] = input('Введите TOKEN пользователя (0 - для отмены): ').strip()
-    if destination["token"].strip() == '0':
+    print(f'Хранилище импортируемых фотографий: {data["destination"]["name"]} - {data["destination"]["url"]}.')
+    data["destination"]["token"] = input('Введите TOKEN пользователя (0 - для отмены): ').strip()
+    if data["destination"]["token"].strip() == '0':
+        return False
+    data["destination"]["path_disk"] = input('Введите каталог загрузки файлов (0 - для отмены): ').strip()
+    if data["destination"]["path_disk"].strip() == '0':
         return False
 
     # Ввод номеров файлов или общего количества скачиваемых файло
     print('Введите количество фотографий для загрузки с ресурса (0 - для отмены)')
     print('< примечание: список номеров фото через пробел [пример: 1, 2, 5],')
-    destination["files"] = list(map(int, input(' или общее количество фото [пример: -5]>: ').strip().split()))
+    files_for_download = list(map(int, input(' или общее количество фото [пример: -5]>: ').strip().split()))
 
-    if destination["files"][0] == 0:
+    # Прверка захотел ли пользователь выйти из диалога, вернуться в предыдущее меню
+    if files_for_download[0] == 0:
         return False
+    # если нет, то
     else:
+        # Если пользователь ввел значение с минусом, то берутся первый -n файлов
+        if files_for_download[0] < 0:
+            data['destination']['files'] = [f for f in range(files_for_download[0])]
+        # иначе выбирается список файлов который ввел пользователь
+        else:
+            data['destination']['files'] = [data['resource']['files'][f] for f in range(len(files_for_download))]
         return True
 
 
