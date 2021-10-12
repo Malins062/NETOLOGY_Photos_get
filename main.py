@@ -1,8 +1,10 @@
 # Курсовая работа «Резервное копирование» первого блока «Основы языка программирования Python».
 import os
+import time
 import pandas as pd
-from pprint import pprint
+# from pprint import pprint
 from vk_api import VKUser
+from progress.bar import IncrementalBar
 
 # Название программы, выводимое на экран
 TITLE_PROGRAM = '--- РЕЗЕРВНОЕ КОПИРОВАНИЕ ФОТОМАТЕРИАЛОВ НА ОБЛАЧНЫЙ СЕРВИС ---'
@@ -14,7 +16,7 @@ commands = [{'1': ['Яндекс диск;', 1, {'name': 'Яндекс диск'
              },
             {'1': ['ВКонтакте;', 1, {'name': 'ВКонтакте', 'url': 'https://api.vk.com/method/', 'version': '5.131'}],
              '2': ['Однокласники;', 2, {'name': 'Одноклассники', 'url': 'https://api.ok.ru/api/'}],
-             '3': ['Инстаграмм', 3, {'name': 'Инстаграмм', 'url': 'https://www.instagram.com/developer/'}],
+             '3': ['Инстаграмм;', 3, {'name': 'Инстаграмм', 'url': 'https://www.instagram.com/developer/'}],
              '9': ['возврат в предыдущее меню;', 9, 'Up'],
              '0': ['выход из программы.\n', 0]
              }
@@ -97,22 +99,41 @@ def main(cmd):
                     init_screen()
 
                     # Ввод необходимых данных ID-пользователя и ключа доступа к ресурсу
-                    if isinstance(input_data_for_read(status_command["resource"][2]), dict):
+                    if input_data_for_read(status_command["resource"][2]):
                         print(f'\n1. ВХОДНЫЕ ДАННЫЕ.\nРесурс импорта - {status_command["resource"][2]["name"]}\n')
                         files_to_download = photos_get(status_command['resource'][2])
 
-                        print('2. СЧИТАННЫЕ ДАННЫЕ.')
+                        print('2. СВЕДЕНИЯ О ФАЙЛАХ НА СЕРВЕРЕ.')
                         if len(files_to_download) > 0:
                             print('\nСписок доступных фотографий для скачивания:')
                             print_list_files(files_to_download)
 
                             # Ввод необходимых данных: ключа доступа к ресурсу на который загружать фотографии
-                            if isinstance(input_data_for_read(status_command["destination"][2]), dict):
-                                input('push ot disk')
+                            if input_data_for_write(status_command["destination"][2]):
+                                status_command['resource'][2]['files'] = status_command['destination'][2]['files']
+                                download_files(status_command['resource'][2])
+                                upload_files(status_command['destination'][2])
+                                input('push to disk')
+
                         else:
                             print('\nНет доступных фотографий для скачивания!\n')
                             input('Для продолжения работы нажмите клавишу "Enter"...')
     return "До встречи!"
+
+
+def download_files(resource):
+    print('Ожидайте, идет скачивание файлов с сетевого ресурса...')
+    bar = IncrementalBar('Скачинвание: ', max=len(resource['files']))
+    for f in range(resource['files']):
+        time.sleep(1)
+        bar.next()
+    bar.finish()
+    print('Скачивание завершено.')
+    return True
+
+
+def upload_files(destination):
+    return True
 
 
 def input_data_for_read(resource):
@@ -121,7 +142,8 @@ def input_data_for_read(resource):
      1) ID пользователя, от которого будет производится импорт фотографий;
      2) TOKEN пользователя, кому будут сохраняться фотографии
     :param resource: параметры источника импорта фотографий (name, url, id)
-    :return: dict - словарь с итоговыми параметрами resource
+    :return: True - если пользователь ввел все необходимые данные + измененный словарь resource
+            False - если пользователь ввел 0 - отмену (возврат в предыдущее меню)
     """
     print(f'Источник импорта фотографий: {resource["name"]} - {resource["url"]}.')
     resource["id"] = input('Введите ID пользователя (0 - для отмены): ').strip()
@@ -131,7 +153,7 @@ def input_data_for_read(resource):
     if resource["token"].strip() == '0':
         return False
     else:
-        return {'resource': resource}
+        return True
 
 
 def input_data_for_write(destination):
@@ -140,7 +162,8 @@ def input_data_for_write(destination):
      1) ID пользователя, от которого будет производится импорт фотографий;
      2) TOKEN пользователя, кому будут сохраняться фотографии
     :param destination: параметры хранилища фотографий (name, url, token)
-    :return: dict - словарь с итоговыми параметрами destination
+    :return: True - если пользователь ввел все необходимые данные + измененный словарь destination
+            False - если пользователь ввел 0 - отмену (возврат в предыдущее меню)
     """
     print(f'Хранилище импортируемых фотографий: {destination["name"]} - {destination["url"]}.')
     destination["token"] = input('Введите TOKEN пользователя (0 - для отмены): ').strip()
@@ -151,7 +174,8 @@ def input_data_for_write(destination):
     if destination["files"].strip() == '0':
         return False
     else:
-        return {'destination': destination}
+        # return {'destination': destination}
+        return True
 
 
 def photos_get(resource) -> list:
