@@ -1,4 +1,5 @@
 import requests
+import os
 
 
 class VKUser:
@@ -68,5 +69,26 @@ class VKUser:
                 # Добавление фото в результирующий список
                 list_files.append(file_params)
             return list_files
+        else:
+            return res
+
+    def download_photo(self, url, disk_file_path):
+        photo_params = {"path": disk_file_path, "overwrite": "true"}
+        # Запрос к ресурсу
+        # res = requests.get(url, params={**self.params, **photo_params})
+
+        res = requests.get(url, stream=True, allow_redirects=True)
+        realurl = res.url.split('/')[-1].split('?')[0]
+
+        filepath = os.path.join(disk_file_path, realurl)
+
+        with open(filepath, 'wb') as image:
+            if res.ok:
+                for content in res.iter_content(1024):
+                    if content:
+                        image.write(content)
+        # Проверка результата ответа сервера на ошибку
+        if 'error' in res:
+            return res['error']
         else:
             return res

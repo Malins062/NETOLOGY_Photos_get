@@ -10,15 +10,20 @@ from progress.bar import IncrementalBar
 TITLE_PROGRAM = '--- РЕЗЕРВНОЕ КОПИРОВАНИЕ ФОТОМАТЕРИАЛОВ НА ОБЛАЧНЫЙ СЕРВИС ---'
 
 # Список допустимых команд программы, их описание и назначение необходимых параметров для каждого пункта
-commands = [{'1': ['Яндекс диск;', 1, {'name': 'Яндекс диск', 'url': 'https://yandex.ru/dev/disk/poligon/'}],
-             '2': ['Google drive;', 2, {'name': 'GoogleDrive API', 'url': ''}],
-             '0': ['выход из программы.\n', 0]
+commands = [{'1': {'menu_cmd': 1, 'menu_title': 'Яндекс диск;',
+                   'name': 'Яндекс диск', 'url': 'https://yandex.ru/dev/disk/poligon/'},
+             '2': {'menu_cmd': 2, 'menu_title': 'Google drive;',
+                   'name': 'GoogleDrive API', 'url': ''},
+             '0': {'menu_cmd': 0, 'menu_title': 'выход из программы.\n'}
              },
-            {'1': ['ВКонтакте;', 1, {'name': 'ВКонтакте', 'url': 'https://api.vk.com/method/', 'version': '5.131'}],
-             '2': ['Однокласники;', 2, {'name': 'Одноклассники', 'url': 'https://api.ok.ru/api/'}],
-             '3': ['Инстаграмм;', 3, {'name': 'Инстаграмм', 'url': 'https://www.instagram.com/developer/'}],
-             '9': ['возврат в предыдущее меню;', 9, 'Up'],
-             '0': ['выход из программы.\n', 0]
+            {'1': {'menu_cmd': 1, 'menu_title': 'ВКонтакте;',
+                   'name': 'ВКонтакте', 'url': 'https://api.vk.com/method/', 'version': '5.131'},
+             '2': {'menu_cmd': 2, 'menu_title': 'Однокласники;',
+                   'name': 'Одноклассники', 'url': 'https://api.ok.ru/api/'},
+             '3': {'menu_cmd': 3, 'menu_title': 'Инстаграмм;',
+                   'name': 'Инстаграмм', 'url': 'https://www.instagram.com/developer/'},
+             '9': {'menu_cmd': 9, 'menu_title': 'возврат в предыдущее меню;'},
+             '0': {'menu_cmd': 0, 'menu_title': 'выход из программы.\n'}
              }
             ]
 
@@ -37,7 +42,7 @@ def main(cmd):
     :param cmd: команды меню и необходимые значения для реагирования к каждой команде
     """
 
-    # Признак не существующей команды меню
+    # Признак несуществующей команды меню
     error_command = 'Invalid'
 
     def invalid_command(err_cmd):
@@ -49,7 +54,7 @@ def main(cmd):
         input('Для продолжения работы нажмите клавишу "Enter"...')
 
     # Параметры текущей, выбранной команды:
-    #       destination - ресурс назначения комирования фотографий
+    #       destination - ресурс назначения копирования фотографий
     #       resource - ресурс откуда необходимо копировать фотографии
     status_command = {'destination': {},
                       'resource': {}
@@ -59,14 +64,14 @@ def main(cmd):
         init_screen()
         print('Выберите ресурс назначения копирования фотографий:')
         for key_command, name_command in cmd[0].items():
-            print(f'\t{key_command} – {name_command[0]}')
+            print(f'\t{key_command} – {name_command["menu_title"]}')
 
         print('Введите команду:', end=' ')
         command = str(input().strip()).lower()
         status_command['destination'] = cmd[0].get(command, error_command)
 
         # Проверка команды подменю - выбран ли пункт ВЫХОД
-        if status_command['destination'][1] == 0:
+        if status_command['destination']['menu_cmd'] == 0:
             is_exit = True
         # Проверка команды подменю - СУЩЕСТВУЕТ ЛИ ВЫБРАННАЯ КОМАНДА
         elif status_command['destination'] == error_command:
@@ -75,33 +80,33 @@ def main(cmd):
             is_menu_out = False
             while not is_menu_out:
                 init_screen()
-                print(f'Хранилище импортируемых фотографий: {status_command["destination"][2]["name"]} - '
-                      f'{status_command["destination"][2]["url"]}.')
+                print(f'Хранилище импортируемых фотографий: {status_command["destination"]["name"]} - '
+                      f'{status_command["destination"]["url"]}.')
                 print('Выберите источник копирования фотографий:')
                 for key_command, name_command in cmd[1].items():
-                    print(f'\t{key_command} – {name_command[0]}')
+                    print(f'\t{key_command} – {name_command["menu_title"]}')
 
                 print('Введите команду:', end=' ')
                 command = str(input().strip()).lower()
                 status_command['resource'] = cmd[1].get(command, error_command)
 
                 # Проверка команды подменю - выбран ли пункт ВЫХОД
-                if status_command['resource'][1] == 0:
+                if status_command['resource']['menu_cmd'] == 0:
                     is_exit = True
                     is_menu_out = True
                 # Проверка команды подменю - СУЩЕСТВУЕТ ЛИ ВЫБРАННАЯ КОМАНДА
                 elif status_command['resource'] == error_command:
                     invalid_command(command)
                 # Проверка команды подменю - выбран ли пункт ВОЗВРАТ В ГЛАВНОЕ МЕНЮ
-                elif status_command['resource'][1] == 9:
+                elif status_command['resource']['menu_cmd'] == 9:
                     is_menu_out = True
                 else:
                     init_screen()
 
                     # Ввод необходимых данных ID-пользователя и ключа доступа к ресурсу
-                    if input_data_for_read(status_command["resource"][2]):
-                        print(f'\n1. ВХОДНЫЕ ДАННЫЕ.\nРесурс импорта - {status_command["resource"][2]["name"]}\n')
-                        files_to_download = photos_get(status_command['resource'][2])
+                    if input_data_for_read(status_command["resource"]):
+                        print(f'\n1. ВХОДНЫЕ ДАННЫЕ.\nРесурс импорта - {status_command["resource"]["name"]}\n')
+                        files_to_download = photos_get(status_command['resource'])
 
                         print('2. СВЕДЕНИЯ О ФАЙЛАХ НА СЕРВЕРЕ.')
                         if len(files_to_download) > 0:
@@ -109,10 +114,9 @@ def main(cmd):
                             print_list_files(files_to_download)
 
                             # Ввод необходимых данных: ключа доступа к ресурсу на который загружать фотографии
-                            if input_data_for_write(status_command["destination"][2]):
-                                status_command['resource'][2]['files'] = status_command['destination'][2]['files']
-                                download_files(status_command['resource'][2])
-                                upload_files(status_command['destination'][2])
+                            if input_data_for_write(status_command["destination"]):
+                                download_files(status_command)
+                                upload_files(status_command)
                                 input('push to disk')
 
                         else:
@@ -121,11 +125,15 @@ def main(cmd):
     return "До встречи!"
 
 
-def download_files(resource):
+def download_files(data):
+    client_vk = VKUser(data['resource']['url'], data['resource']['token'], data['resource']['version'])
+
     print('Ожидайте, идет скачивание файлов с сетевого ресурса...')
-    bar = IncrementalBar('Скачинвание: ', max=len(resource['files']))
-    for f in range(resource['files']):
-        time.sleep(1)
+    bar = IncrementalBar('Скачивание: ', max=len(data['resource']['files']))
+    # for f in range(len(data['resource']['files'])):
+    for f in data['resource']['files']:
+        client_vk.download_photo(f['url'], 'TEMP')
+        time.sleep(5)
         bar.next()
     bar.finish()
     print('Скачивание завершено.')
@@ -170,11 +178,14 @@ def input_data_for_write(destination):
     if destination["token"].strip() == '0':
         return False
 
-    destination["files"] = input('Введите количество фотографий для загрузки (0 - для отмены): ').strip()
-    if destination["files"].strip() == '0':
+    # Ввод номеров файлов или общего количества скачиваемых файло
+    print('Введите количество фотографий для загрузки с ресурса (0 - для отмены)')
+    print('< примечание: список номеров фото через пробел [пример: 1, 2, 5],')
+    destination["files"] = list(map(int, input(' или общее количество фото [пример: -5]>: ').strip().split()))
+
+    if destination["files"][0] == 0:
         return False
     else:
-        # return {'destination': destination}
         return True
 
 
@@ -192,7 +203,8 @@ def photos_get(resource) -> list:
 
         client_vk = VKUser(resource['url'], resource['token'], resource['version'])
         print(client_vk)
-        return client_vk.get_photos(resource['id'])
+        resource['files'] = client_vk.get_photos(resource['id'])
+        return resource['files']
     return []
 
 
