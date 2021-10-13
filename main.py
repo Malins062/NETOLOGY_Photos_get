@@ -123,7 +123,7 @@ def main(cmd):
                                 if status_command['destination']['menu_cmd'] == 2:
                                     download_files(status_command)
                                     upload_files(status_command)
-                                input('push to disk')
+                                input('\nДля продолжения работы нажмите клавишу "Enter"...')
 
                         else:
                             print('\nНет доступных фотографий для скачивания!\n')
@@ -147,9 +147,10 @@ def download_files(data):
 
 
 def upload_files(data):
-    print(f'Ожидайте, идет передача файлов на конечный сетевой ресурс {data["destination"]["url"]}...')
+    print(f'\nОжидайте, идет передача файлов на конечный сетевой ресурс '
+          f'{data["destination"]["name"]}: {data["destination"]["url"]}...')
     suffix = '%(percent)d%% [%(elapsed_td)s / %(eta)d / %(eta_td)s]'
-    bar = IncrementalBar('Загрузка: ', suffix=suffix, max=len(data['destination']['files']))
+    bar = IncrementalBar('Загрузка: ', suffix=suffix, max=len(data['destination']['files']) + 1)
     token = 'AQAAAAACs0c5AADLW8Q8CcqRaU41gHCd6u19yBk'
     data['destination']['path_disk'] = 'NETOLOGY/PHOTO'
 
@@ -160,17 +161,17 @@ def upload_files(data):
     #     client = 'google'
 
     client = YaDiskUser(token)
+    bar.next()
 
     # Загрузка файлов
     for f in data['destination']['files']:
         # print(f'Загрузка файла {f["file_name"]} ...', end='')
         client.upload_url_to_disk(data['destination']['path_disk'] + '/' + f['file_name'], f['url'])
-        # client.upload_urlfile_to_disk(data['destination']['path_disk'], f['url'])
         bar.next()
         # print(' УСПЕШНО')
     bar.finish()
 
-    print(f'Загрузка на ресурс {data["destination"]["name"]}: {data["destination"]["url"]} - завершена.')
+    print(f'Загрузка завершена.')
     return True
 
 
@@ -183,6 +184,7 @@ def input_data_for_read(resource):
     :return: True - если пользователь ввел все необходимые данные + измененный словарь resource
             False - если пользователь ввел 0 - отмену (возврат в предыдущее меню)
     """
+
     print(f'Источник импорта фотографий: {resource["name"]} - {resource["url"]}.')
     resource["id"] = input('Введите ID пользователя (0 - для отмены): ').strip()
     if resource["id"] == '0':
@@ -204,6 +206,7 @@ def input_data_for_write(data):
     :return: True - если пользователь ввел все необходимые данные + измененный словарь data
             False - если пользователь ввел 0 - отмену (возврат в предыдущее меню)
     """
+
     print(f'Хранилище импортируемых фотографий: {data["destination"]["name"]} - {data["destination"]["url"]}.')
     data["destination"]["token"] = input('Введите TOKEN пользователя (0 - для отмены): ').strip()
     if data["destination"]["token"].strip() == '0':
@@ -224,10 +227,10 @@ def input_data_for_write(data):
     else:
         # Если пользователь ввел значение с минусом, то берутся первый -n файлов
         if files_for_download[0] < 0:
-            data['destination']['files'] = [f for f in range(files_for_download[0])]
+            data['destination']['files'] = [data['resource']['files'][f] for f in range(abs(files_for_download[0]))]
         # иначе выбирается список файлов который ввел пользователь
         else:
-            data['destination']['files'] = [data['resource']['files'][f] for f in range(len(files_for_download))]
+            data['destination']['files'] = [data['resource']['files'][f-1] for f in files_for_download]
         return True
 
 

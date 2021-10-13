@@ -5,6 +5,10 @@ class YaDiskUser:
     """
     Класс для работы с сервисом Яндекс диск
     """
+
+    files_url = 'https://cloud-api.yandex.net/v1/disk/resources/files'
+    upload_url = "https://cloud-api.yandex.net/v1/disk/resources/upload"
+
     def __init__(self, token):
         self.token = token
 
@@ -19,16 +23,14 @@ class YaDiskUser:
         Метод получения списка файлов
         :return: список файлов в формате json
         """
-        files_url = 'https://cloud-api.yandex.net/v1/disk/resources/files'
         headers = self.get_headers()
-        response = requests.get(files_url, headers=headers)
+        response = requests.get(self.files_url, headers=headers)
         return response.json()
 
     def _get_upload_link(self, disk_file_path):
-        upload_url = "https://cloud-api.yandex.net/v1/disk/resources/upload"
         headers = self.get_headers()
         params = {"path": disk_file_path, "overwrite": "true"}
-        response = requests.get(upload_url, headers=headers, params=params)
+        response = requests.get(self.upload_url, headers=headers, params=params)
         return response.json()
 
     def upload_file_to_disk(self, disk_file_path, filename):
@@ -39,10 +41,9 @@ class YaDiskUser:
             print(f"Файл - {disk_file_path} загружен.")
 
     def upload_url_to_disk(self, disk_path, url):
-        href = self._get_upload_link(disk_file_path=disk_path).get("href", "")
-        params = {"path": disk_path, "url": url}
-        response = requests.post(href, params=params)
+        headers = self.get_headers()
+        params = {"path": disk_path, "url": url, "overwrite": "true"}
+        response = requests.post(url=self.upload_url, headers=headers, params=params)
         response.raise_for_status()
-        if response.status_code == 202:
-            print(f"Файл - {disk_path} загружен.")
+        return response.status_code
 
