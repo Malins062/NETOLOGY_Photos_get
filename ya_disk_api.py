@@ -37,3 +37,12 @@ class YaDiskUser:
         response.raise_for_status()
         if response.status_code == 201:
             print(f"Файл - {disk_file_path} загружен.")
+
+    def upload_url_to_disk(self, disk_path, url):
+        href = self._get_upload_link(disk_file_path=disk_path).get("href", "")
+        params = {"path": disk_path, "url": url}
+        response = requests.post(href, params=params)
+        response.raise_for_status()
+        if response.status_code == 202:
+            print(f"Файл - {disk_path} загружен.")
+

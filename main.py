@@ -148,21 +148,26 @@ def download_files(data):
 
 def upload_files(data):
     print(f'Ожидайте, идет передача файлов на конечный сетевой ресурс {data["destination"]["url"]}...')
-    bar = IncrementalBar('Загрузка: ', max=len(data['destination']['files']))
-    token = ''
+    suffix = '%(percent)d%% [%(elapsed_td)s / %(eta)d / %(eta_td)s]'
+    bar = IncrementalBar('Загрузка: ', suffix=suffix, max=len(data['destination']['files']))
+    token = 'AQAAAAACs0c5AADLW8Q8CcqRaU41gHCd6u19yBk'
+    data['destination']['path_disk'] = 'NETOLOGY/PHOTO'
 
-    # Проверка на какой ресурся загружать файлы 1 - Яндекс диск, 2 - Google drive
-    if data['destination']['menu_cmd'] == 1:
-        client = YaDiskUser(token)
-    elif data['destination']['menu_cmd'] == 2:
-        client = 'google'
+    # # Проверка на какой ресурся загружать файлы 1 - Яндекс диск, 2 - Google drive
+    # if data['destination']['menu_cmd'] == 1:
+    #     client = YaDiskUser(token)
+    # elif data['destination']['menu_cmd'] == 2:
+    #     client = 'google'
+
+    client = YaDiskUser(token)
 
     # Загрузка файлов
     for f in data['destination']['files']:
-        print(f'Загрузка файла {f["file_name"]} ...', end='')
-        client.upload_file_to_disk(data['destination']['path_disk'] + '/' + f['url'], f['file_name'])
-        print(' УСПЕШНО')
+        # print(f'Загрузка файла {f["file_name"]} ...', end='')
+        client.upload_url_to_disk(data['destination']['path_disk'] + '/' + f['file_name'], f['url'])
+        # client.upload_urlfile_to_disk(data['destination']['path_disk'], f['url'])
         bar.next()
+        # print(' УСПЕШНО')
     bar.finish()
 
     print(f'Загрузка на ресурс {data["destination"]["name"]}: {data["destination"]["url"]} - завершена.')
