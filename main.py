@@ -1,8 +1,8 @@
 # Курсовая работа «Резервное копирование» первого блока «Основы языка программирования Python».
 import os
+import json
 import time
 import pandas as pd
-# from pprint import pprint
 from vk_api import VKUser
 from ya_disk_api import YaDiskUser
 from progress.bar import IncrementalBar
@@ -27,6 +27,9 @@ commands = [{'1': {'menu_cmd': 1, 'menu_title': 'Яндекс диск;',
              '0': {'menu_cmd': 0, 'menu_title': 'выход из программы.\n'}
              }
             ]
+
+# Имя файла журнала загрузки файлов на диск
+file_log_name = 'upload.log'
 
 
 def init_screen():
@@ -125,6 +128,9 @@ def main(cmd):
                                     download_files(status_command)
                                     upload_files(status_command)
 
+                                # Сохранение данных в журнал
+                                save_file_json(status_command['destination']['files'], file_log_name)
+
                                 print(f'Результаты загрузки файлов на ресурс {status_command["destination"]["name"]}:')
                                 print_list_files(status_command['destination']['files'])
                                 input('\nДля продолжения работы нажмите клавишу "Enter"...')
@@ -147,40 +153,60 @@ def download_files(data):
         bar.next()
     bar.finish()
     print('Скачивание завершено.')
-    return True
 
 
 def upload_files(data):
+    """
+    Функция выгрузки списка файлов из словаря data на сетевой ресурс
+    :param data:
+    """
     print(f'\nОжидайте, идет передача файлов на конечный сетевой ресурс '
           f'{data["destination"]["name"]}: {data["destination"]["url"]}...')
     suffix = '%(percent)d%%.'
-    bar = IncrementalBar('Загрузка: ', color='green', suffix=suffix, max=len(data['destination']['files']) + 1)
-    bar.next()
+    bar = IncrementalBar('Процесс - ', color='green', suffix=suffix, max=len(data['destination']['files']) + 2)
 
-    token = 'AQAAAAACs0c5AADLW8Q8CcqRaU41gHCd6u19yBk'
-    # data['destination']['path_disk'] = 'NETOLOGY/PHOTO'
-
-    # # Проверка на какой ресурся загружать файлы 1 - Яндекс диск, 2 - Google drive
+    # Проверка на какой ресурся загружать файлы 1 - Яндекс диск, 2 - Google drive
     # if data['destination']['menu_cmd'] == 1:
     #     client = YaDiskUser(token)
     # elif data['destination']['menu_cmd'] == 2:
     #     client = 'google'
 
+    bar.suffix = '{sfx} Соединение с сервером...'.format(sfx=suffix)
+    bar.next()
+
     client = YaDiskUser(token)
 
     # Загрузка файлов
     for f in data['destination']['files']:
-        bar.suffix = '{sfx} Файл - {f_name}'.format(f_name=f["file_name"], sfx=suffix)
+        bar.suffix = '{sfx} Передается файл: {f_name} ...'.format(f_name=f["file_name"], sfx=suffix)
         status_upload = client.upload_url_to_disk(data['destination']['path_disk'] + '/' + f['file_name'], f['url'])
-        if status_upload['code'] == 201:
+        if status_upload['code'] == 202:
             f['log_upload'] = 'Успешно загружен'
         else:
             f['log_upload'] = f'Ошибка загрузки {status_upload["code"]}: {status_upload["text"]}'
         bar.next()
+
+    bar.suffix = '{sfx} Все файлы обработаны.'.format(sfx=suffix)
+    bar.next()
     bar.finish()
 
-    print(f'Загрузка завершена.\n')
-    return True
+    print(f'Выгрузка файлов завершена.\n')
+
+
+def save_file_json(data, file_name):
+    """
+    Функция сохраения данных json data в в файл
+    :param data: словарь который необходимо сохранить в файл
+    :param file_name: имя сохраняемого файла
+    :return: True - если сохранение файла успешно, иначе вывод текста, возникшего Exception
+    """
+    try:
+        with open(file_name, 'w', encoding='UTF-8') as f:
+            json.dump(data, f, ensure_ascii=False)
+        return True
+    except Exception as Ex:
+        print(f'Ошибка сохранения результатов в журнал! Файл: {file_name}, ошибка - {Ex}')
+        return Ex
 
 
 def input_data_for_read(resource):
