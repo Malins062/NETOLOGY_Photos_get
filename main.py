@@ -1,7 +1,6 @@
 # Курсовая работа «Резервное копирование» первого блока «Основы языка программирования Python».
 import os
 import json
-import time
 import pandas as pd
 from vk_api import VKUser
 from ya_disk_api import YaDiskUser
@@ -111,12 +110,12 @@ def main(cmd):
                     # Ввод необходимых данных ID-пользователя и ключа доступа к ресурсу
                     if input_data_for_read(status_command["resource"]):
                         print(f'\n1. ВХОДНЫЕ ДАННЫЕ.\nРесурс импорта - {status_command["resource"]["name"]}\n')
-                        files_to_download = photos_get(status_command['resource'])
-
                         print('2. СВЕДЕНИЯ О ФАЙЛАХ НА СЕРВЕРЕ.')
+
+                        files_to_download = photos_get(status_command['resource'])
                         if len(files_to_download) > 0:
                             print('\nСписок доступных фотографий для скачивания:')
-                            print_list_files(files_to_download)
+                            print_list_files(files_to_download, ['file_name', 'height', 'width'])
 
                             # Ввод необходимых данных: ключа доступа к ресурсу на который загружать фотографии
                             if input_data_for_write(status_command):
@@ -132,9 +131,9 @@ def main(cmd):
                                 save_file_json(status_command['destination']['files'], file_log_name)
 
                                 print(f'Результаты загрузки файлов на ресурс {status_command["destination"]["name"]}:')
-                                print_list_files(status_command['destination']['files'])
+                                print_list_files(status_command['destination']['files'],
+                                                 ['file_name', 'height', 'width', 'log_upload'])
                                 input('\nДля продолжения работы нажмите клавишу "Enter"...')
-
                         else:
                             print('\nНет доступных фотографий для скачивания!\n')
                             input('Для продолжения работы нажмите клавишу "Enter"...')
@@ -142,16 +141,16 @@ def main(cmd):
 
 
 def download_files(data):
-    client_vk = VKUser(data['resource']['url'], data['resource']['token'], data['resource']['version'])
-
-    print('Ожидайте, идет скачивание файлов с сетевого ресурса...')
-    bar = IncrementalBar('Скачивание: ', max=len(data['resource']['files']))
-    # for f in range(len(data['resource']['files'])):
-    for f in data['resource']['files']:
-        client_vk.download_photo(f['url'], 'TEMP')
-        time.sleep(5)
-        bar.next()
-    bar.finish()
+    # client_vk = VKUser(data['resource']['url'], data['resource']['token'], data['resource']['version'])
+    #
+    # print('Ожидайте, идет скачивание файлов с сетевого ресурса...')
+    # bar = IncrementalBar('Скачивание: ', max=len(data['resource']['files']))
+    # # for f in range(len(data['resource']['files'])):
+    # for f in data['resource']['files']:
+    #     client_vk.download_photo(f['url'], 'TEMP')
+    #     time.sleep(5)
+    #     bar.next()
+    # bar.finish()
     print('Скачивание завершено.')
 
 
@@ -174,7 +173,7 @@ def upload_files(data):
     bar.suffix = '{sfx} Соединение с сервером...'.format(sfx=suffix)
     bar.next()
 
-    client = YaDiskUser(token)
+    client = YaDiskUser(data["destination"]["token"])
 
     # Загрузка файлов
     for f in data['destination']['files']:
@@ -284,26 +283,32 @@ def photos_get(resource) -> list:
     Функция считывания списка доступных файлов для скачивания с сетевых ресурсов
     :param resource: входные параметры выбранного сетевого ресурса
     :return: список доступных файлов для скачивания c заданного сетевого ресурса,
-    если ресурс не в спсике допустимых - возращаект пустой список
+    если возникла ошибка - печать ошибки и возращает пустой список
     """
     if resource["name"] == 'ВКонтакте':
-        resource['id'] = 552934290
-        resource['token'] = '958eb5d439726565e9333aa30e50e0f937ee432e927f0dbd541c541887d919a7c56f95c04217915c32008'
+        # resource['id'] = 552934290
+        # resource['token'] = '958eb5d439726565e9333aa30e50e0f937ee432e927f0dbd541c541887d919a7c56f95c04217915c32008'
 
         client_vk = VKUser(resource['url'], resource['token'], resource['version'])
         print(client_vk)
         resource['files'] = client_vk.get_photos(resource['id'])
-        return resource['files']
+        if isinstance(resource['files'], dict) and resource['files'].get('error_code', False):
+            print(f'Ошибка при чтении списка фотографий!\n '
+                  f'Код ошибки: {resource["files"]["error_code"]} - {resource["files"]["error_msg"]}.')
+            return []
+        else:
+            return resource['files']
     return []
 
 
-def print_list_files(list_files):
+def print_list_files(list_files, columns):
     """
     Функция вывода списка list_files на экран в табличном формате с помощью библиотеки Pandas
     :param list_files: список файлов
-    :return:
+    :param columns: список колонок которые необходимо выводить на экран
+    :return: вывод данных в виде таблицы
     """
-    frame = pd.DataFrame(list_files, columns=['file_name', 'height', 'width', 'log_upload'])
+    frame = pd.DataFrame(list_files, columns=columns)
     # frame['url'] = frame['url'][:20]
     frame.rename(columns={'file_name': 'Наименование файла',
                           'width': 'Ширина',
