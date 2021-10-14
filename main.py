@@ -37,6 +37,15 @@ def init_screen():
     print(f'{TITLE_PROGRAM}\n')
 
 
+def invalid_command(err_cmd):
+    """
+    Вывод ошибки на экран, при вводе неверной команды
+    :return:
+    """
+    print(f'\n*** ОШИБКА! Выполнение команды "{err_cmd}" не допустимо! ***\n')
+    input('Для продолжения работы нажмите клавишу "Enter"...')
+
+
 def main(cmd):
     """
     Функция основного меню и подменю, с реагированием на команды поданного списка cmd
@@ -45,14 +54,6 @@ def main(cmd):
 
     # Признак несуществующей команды меню
     error_command = 'Invalid'
-
-    def invalid_command(err_cmd):
-        """
-        Вывод ошибки на экран, при вводе неверной команды
-        :return:
-        """
-        print(f'\n*** ОШИБКА! Выполнение команды "{err_cmd}" не допустимо! ***\n')
-        input('Для продолжения работы нажмите клавишу "Enter"...')
 
     # Параметры текущей, выбранной команды:
     #       destination - ресурс назначения копирования фотографий
@@ -71,12 +72,12 @@ def main(cmd):
         command = str(input().strip()).lower()
         status_command['destination'] = cmd[0].get(command, error_command)
 
-        # Проверка команды подменю - выбран ли пункт ВЫХОД
-        if status_command['destination']['menu_cmd'] == 0:
-            is_exit = True
         # Проверка команды подменю - СУЩЕСТВУЕТ ЛИ ВЫБРАННАЯ КОМАНДА
-        elif status_command['destination'] == error_command:
+        if status_command['destination'] == error_command:
             invalid_command(command)
+        # Проверка команды подменю - выбран ли пункт ВЫХОД
+        elif status_command['destination']['menu_cmd'] == 0:
+            is_exit = True
         else:
             is_menu_out = False
             while not is_menu_out:
@@ -91,13 +92,13 @@ def main(cmd):
                 command = str(input().strip()).lower()
                 status_command['resource'] = cmd[1].get(command, error_command)
 
+                # Проверка команды подменю - СУЩЕСТВУЕТ ЛИ ВЫБРАННАЯ КОМАНДА
+                if status_command['resource'] == error_command:
+                    invalid_command(command)
                 # Проверка команды подменю - выбран ли пункт ВЫХОД
-                if status_command['resource']['menu_cmd'] == 0:
+                elif status_command['resource']['menu_cmd'] == 0:
                     is_exit = True
                     is_menu_out = True
-                # Проверка команды подменю - СУЩЕСТВУЕТ ЛИ ВЫБРАННАЯ КОМАНДА
-                elif status_command['resource'] == error_command:
-                    invalid_command(command)
                 # Проверка команды подменю - выбран ли пункт ВОЗВРАТ В ГЛАВНОЕ МЕНЮ
                 elif status_command['resource']['menu_cmd'] == 9:
                     is_menu_out = True
@@ -123,6 +124,9 @@ def main(cmd):
                                 if status_command['destination']['menu_cmd'] == 2:
                                     download_files(status_command)
                                     upload_files(status_command)
+
+                                print(f'Результаты загрузки файлов на ресурс {status_command["destination"]["name"]}:')
+                                print_list_files(status_command['destination']['files'])
                                 input('\nДля продолжения работы нажмите клавишу "Enter"...')
 
                         else:
@@ -149,10 +153,12 @@ def download_files(data):
 def upload_files(data):
     print(f'\nОжидайте, идет передача файлов на конечный сетевой ресурс '
           f'{data["destination"]["name"]}: {data["destination"]["url"]}...')
-    suffix = '%(percent)d%% [%(elapsed_td)s / %(eta)d / %(eta_td)s]'
-    bar = IncrementalBar('Загрузка: ', suffix=suffix, max=len(data['destination']['files']) + 1)
+    suffix = '%(percent)d%%.'
+    bar = IncrementalBar('Загрузка: ', color='green', suffix=suffix, max=len(data['destination']['files']) + 1)
+    bar.next()
+
     token = 'AQAAAAACs0c5AADLW8Q8CcqRaU41gHCd6u19yBk'
-    data['destination']['path_disk'] = 'NETOLOGY/PHOTO'
+    # data['destination']['path_disk'] = 'NETOLOGY/PHOTO'
 
     # # Проверка на какой ресурся загружать файлы 1 - Яндекс диск, 2 - Google drive
     # if data['destination']['menu_cmd'] == 1:
@@ -161,17 +167,19 @@ def upload_files(data):
     #     client = 'google'
 
     client = YaDiskUser(token)
-    bar.next()
 
     # Загрузка файлов
     for f in data['destination']['files']:
-        # print(f'Загрузка файла {f["file_name"]} ...', end='')
-        client.upload_url_to_disk(data['destination']['path_disk'] + '/' + f['file_name'], f['url'])
+        bar.suffix = '{sfx} Файл - {f_name}'.format(f_name=f["file_name"], sfx=suffix)
+        status_upload = client.upload_url_to_disk(data['destination']['path_disk'] + '/' + f['file_name'], f['url'])
+        if status_upload['code'] == 201:
+            f['log_upload'] = 'Успешно загружен'
+        else:
+            f['log_upload'] = f'Ошибка загрузки {status_upload["code"]}: {status_upload["text"]}'
         bar.next()
-        # print(' УСПЕШНО')
     bar.finish()
 
-    print(f'Загрузка завершена.')
+    print(f'Загрузка завершена.\n')
     return True
 
 
@@ -184,7 +192,6 @@ def input_data_for_read(resource):
     :return: True - если пользователь ввел все необходимые данные + измененный словарь resource
             False - если пользователь ввел 0 - отмену (возврат в предыдущее меню)
     """
-
     print(f'Источник импорта фотографий: {resource["name"]} - {resource["url"]}.')
     resource["id"] = input('Введите ID пользователя (0 - для отмены): ').strip()
     if resource["id"] == '0':
@@ -206,7 +213,6 @@ def input_data_for_write(data):
     :return: True - если пользователь ввел все необходимые данные + измененный словарь data
             False - если пользователь ввел 0 - отмену (возврат в предыдущее меню)
     """
-
     print(f'Хранилище импортируемых фотографий: {data["destination"]["name"]} - {data["destination"]["url"]}.')
     data["destination"]["token"] = input('Введите TOKEN пользователя (0 - для отмены): ').strip()
     if data["destination"]["token"].strip() == '0':
@@ -215,23 +221,36 @@ def input_data_for_write(data):
     if data["destination"]["path_disk"].strip() == '0':
         return False
 
-    # Ввод номеров файлов или общего количества скачиваемых файло
+    # Ввод номеров файлов или общего количества скачиваемых файлоы
     print('Введите количество фотографий для загрузки с ресурса (0 - для отмены)')
     print('< примечание: список номеров фото через пробел [пример: 1, 2, 5],')
-    files_for_download = list(map(int, input(' или общее количество фото [пример: -5]>: ').strip().split()))
+    print(' или общее количество фото [пример: -5]>:', end=' ')
+    try:
+        files_for_download = []
+        while not files_for_download:
+            files_for_download = list(map(int, input().strip().split()))
+    # При ошибке ввода - вывод ошибки и переход в предыдующее меню
+    except Exception as Ex:
+        invalid_command(Ex)
+        return False
 
     # Прверка захотел ли пользователь выйти из диалога, вернуться в предыдущее меню
     if files_for_download[0] == 0:
         return False
     # если нет, то
     else:
-        # Если пользователь ввел значение с минусом, то берутся первый -n файлов
-        if files_for_download[0] < 0:
-            data['destination']['files'] = [data['resource']['files'][f] for f in range(abs(files_for_download[0]))]
-        # иначе выбирается список файлов который ввел пользователь
-        else:
-            data['destination']['files'] = [data['resource']['files'][f-1] for f in files_for_download]
-        return True
+        try:
+            # Если пользователь ввел значение с минусом, то берутся первые -n файлов
+            if files_for_download[0] < 0:
+                data['destination']['files'] = [data['resource']['files'][f] for f in range(abs(files_for_download[0]))]
+            # иначе выбирается список файлов который ввел пользователь
+            else:
+                data['destination']['files'] = [data['resource']['files'][f-1] for f in files_for_download]
+            return True
+        # Проверка на возможные ошибки при вводе списка файлов (например номер несуществующего файла)
+        except Exception as Ex:
+            invalid_command(Ex)
+            return False
 
 
 def photos_get(resource) -> list:
@@ -241,7 +260,6 @@ def photos_get(resource) -> list:
     :return: список доступных файлов для скачивания c заданного сетевого ресурса,
     если ресурс не в спсике допустимых - возращаект пустой список
     """
-
     if resource["name"] == 'ВКонтакте':
         resource['id'] = 552934290
         resource['token'] = '958eb5d439726565e9333aa30e50e0f937ee432e927f0dbd541c541887d919a7c56f95c04217915c32008'
@@ -259,19 +277,16 @@ def print_list_files(list_files):
     :param list_files: список файлов
     :return:
     """
-    frame = pd.DataFrame(list_files, columns=['file_name', 'height', 'width'])
+    frame = pd.DataFrame(list_files, columns=['file_name', 'height', 'width', 'log_upload'])
     # frame['url'] = frame['url'][:20]
     frame.rename(columns={'file_name': 'Наименование файла',
                           'width': 'Ширина',
                           'height': 'Высота',
-                          'url': 'Ссылка на скачинвание'}, inplace=True)
+                          'url': 'Ссылка на скачинвание',
+                          'log_upload': 'Результат загрузки'}, inplace=True)
     frame.index = frame.index + 1
     frame.columns.name = '№'
     print(frame, '\n')
-
-
-def photo_download(file_name, token):
-    pass
 
 
 if __name__ == '__main__':
