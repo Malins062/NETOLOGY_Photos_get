@@ -3,6 +3,7 @@ import os
 import json
 import pandas as pd
 from vk_api import VKUser
+from ok_api import OKUser
 from ya_disk_api import YaDiskUser
 from progress.bar import IncrementalBar
 
@@ -285,7 +286,8 @@ def photos_get(resource) -> list:
     :return: список доступных файлов для скачивания c заданного сетевого ресурса,
     если возникла ошибка - печать ошибки и возращает пустой список
     """
-    if resource["name"] == 'ВКонтакте':
+    #  Проверка выбранного сервиса из пунктов меню 1 - Вконтакте
+    if resource["menu_cmd"] == 1:
         # resource['id'] = 552934290
         # resource['token'] = '958eb5d439726565e9333aa30e50e0f937ee432e927f0dbd541c541887d919a7c56f95c04217915c32008'
 
@@ -298,6 +300,22 @@ def photos_get(resource) -> list:
             return []
         else:
             return resource['files']
+
+    #  Проверка выбранного сервиса из пунктов меню 2 - Одноклассники
+    elif resource["menu_cmd"] == 2:
+        resource['id'] = 86398975150
+        resource['token'] = '147e458add283390f4cab7f38196fd72'
+
+        client_ok = OKUser(resource['url'], resource['token'])
+        print(client_ok)
+        resource['files'] = client_ok.get_photos(resource['id'])
+        if isinstance(resource['files'], dict) and resource['files'].get('error_code', False):
+            print(f'Ошибка при чтении списка фотографий!\n '
+                  f'Код ошибки: {resource["files"]["error_code"]} - {resource["files"]["error_msg"]}.')
+            return []
+        else:
+            return resource['files']
+
     return []
 
 

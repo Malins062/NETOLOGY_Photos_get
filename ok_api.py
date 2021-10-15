@@ -1,43 +1,55 @@
 import requests
+import hashlib
 
 
-class VKUser:
+class OKUser:
     """
-    Класс для работы с API Вконтакте
+    Класс для работы с API Одноклассники
     """
 
-    def __init__(self, url, token, version):
+    # Параметры приложения API
+    application_id = 512000933212
+    application_key = 'CNFODDKGDIHBABABA'
+    application_secret_key = 'tkn10fo7E9dQcFKdmWLkCDe9Q650hJtATdEeAxZnKvoK7tf7gpuAQvuONKryEoy0IMdXG'
+    access_token = 'tkn1QzcYHUFZvmDYcgPvGKRklTQPudiI2WZbm6dngtvjAS7ZcpNXdytn2A8Biq9ZSBLZX'
+
+    def __init__(self, url, token):
         self.url = url
-        self.params = {
-            'access_token': token,
-            'v': version,
-        }
+        self.session_secret_key = token
 
     def __str__(self):
         return f'Адрес API: {self.url}\n' \
                f'Параметры get-запроса:\n' \
-               f'\t* версия протокола - {self.params["v"]}\n' \
-               f'\t* ключ доступа - {self.params["access_token"][:5]}...' \
-               f'{self.params["access_token"][len(self.params["access_token"])-5:]}\n'
+               f'\t* ключ доступа - {self.session_secret_key[:5]}...' \
+               f'{self.session_secret_key[len(self.session_secret_key)-5:]}\n'
 
-    def get_photos(self, owner_id=None, album_id='profile') -> list:
+    def get_photos(self, owner_id=None) -> list:
         """
-        Метод создания запроса к странице ВКонтакте для получения списка доступных фотографий
-        :param owner_id: id пользователя страницы ВКонтакте
-        :param album_id: profile, saved или
+        Метод создания запроса к странице Одноклассники для получения списка доступных фотографий
+        :param owner_id: id пользователя страницы Одноклассники
         :return: список найденных фотографий или ошибку
         """
-        # URL запроса
-        photos_url = self.url + 'photos.get'
+        # Расчет необходимого параметра sig
+
         # Параметры запроса
         photos_params = {
-            'extended': 1,
-            'owner_id': owner_id,
-            'album_id': album_id
+            'application_key': self.application_key,
+            'fid': owner_id,
+            'format': 'json',
+            'method': 'photos.getPhotos',
+        }
+
+        # Вычисление необходимого параметра sig
+        sig = ''.join([key + '=' + str(value) for key, value in photos_params.items()]) + self.session_secret_key
+        sig = hashlib.md5(sig.encode('utf-8')).hexdigest()
+
+        sig_params = {
+            'sig': sig,
+            'access_token': self.access_token
         }
 
         # Запрос к ресурсу
-        res = requests.get(photos_url, params={**self.params, **photos_params}).json()
+        res = requests.get(self.url, params={**photos_params, **sig_params}).json()
 
         # Проверка результата ответа сервера на ошибку
         if 'error' in res:
