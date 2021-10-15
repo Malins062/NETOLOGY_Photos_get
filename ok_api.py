@@ -11,7 +11,7 @@ class OKUser:
     application_id = 512000933212
     application_key = 'CNFODDKGDIHBABABA'
     application_secret_key = 'tkn10fo7E9dQcFKdmWLkCDe9Q650hJtATdEeAxZnKvoK7tf7gpuAQvuONKryEoy0IMdXG'
-    access_token = 'tkn1QzcYHUFZvmDYcgPvGKRklTQPudiI2WZbm6dngtvjAS7ZcpNXdytn2A8Biq9ZSBLZX'
+    access_token = 'tkn1sj0BQ94qGFESvnA8kwIa7QQTy2whiRrCVzoNi9EMx62anC9vAXjPXCNIYgi21W1Zd'
 
     def __init__(self, url, token):
         self.url = url
@@ -29,18 +29,19 @@ class OKUser:
         :param owner_id: id пользователя страницы Одноклассники
         :return: список найденных фотографий или ошибку
         """
-        # Расчет необходимого параметра sig
-
         # Параметры запроса
         photos_params = {
             'application_key': self.application_key,
             'fid': owner_id,
+            'fields': 'photo.like_count, photo.pic_max, photo.text, photo.standard_height, '
+                      'photo.standard_width, photo.preview_data, photo.type',
             'format': 'json',
             'method': 'photos.getPhotos',
         }
 
         # Вычисление необходимого параметра sig
-        sig = ''.join([key + '=' + str(value) for key, value in photos_params.items()]) + self.session_secret_key
+        sig = ''.join([key + '=' + str(value) for key, value in photos_params.items()])
+        sig = sig + self.session_secret_key
         sig = hashlib.md5(sig.encode('utf-8')).hexdigest()
 
         sig_params = {
@@ -52,31 +53,31 @@ class OKUser:
         res = requests.get(self.url, params={**photos_params, **sig_params}).json()
 
         # Проверка результата ответа сервера на ошибку
-        if 'error' in res:
-            return res['error']
+        if 'error_code' in res:
+            return res
 
         # Проверка на наличие необходимых данных в ответе сервера
-        elif 'response' in res and 'items' in res['response']:
+        elif 'photos' in res:
             list_files = []
 
             # Создание словаря лайков фотографий, у которых совпадает количество лайков
             repeat_likes = {}
-            for value in res['response']['items']:
-                if value['likes']['count'] in repeat_likes:
-                    repeat_likes[value['likes']['count']] += 1
+            for value in res['photos']:
+                if value['mark_count'] in repeat_likes:
+                    repeat_likes[value['mark_count']] += 1
                 else:
-                    repeat_likes[value['likes']['count']] = 1
+                    repeat_likes[value['mark_count']] = 1
 
-            # Перебор всех данных по ключу 'items'
-            for value in res['response']['items']:
+            # Перебор всех данных по ключу 'photos'
+            for value in res['photos']:
                 # Определение самой большой фотографии: сортировка списка фотографий по высоте и ширине
                 file_params = sorted(value['sizes'], key=lambda x: x['height'] + x['width'], reverse=True)[0]
 
                 # Создание имени фотографии в формате: id_likes.jpg
-                if repeat_likes.get(value['likes']['count'], 0) > 1:
-                    file_params['file_name'] = str(value['likes']['count']) + '_' + str(value['date']) + '.jpg'
+                if repeat_likes.get(value['mark_count'], 0) > 1:
+                    file_params['file_name'] = str(value['mark_count']) + '_' + str(value['date']) + '.jpg'
                 else:
-                    file_params['file_name'] = str(value['likes']['count']) + '.jpg'
+                    file_params['file_name'] = str(value['mark_count']) + '.jpg'
 
                 # Добавление фото в результирующий список
                 list_files.append(file_params)

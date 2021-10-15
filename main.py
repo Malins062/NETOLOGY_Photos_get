@@ -20,7 +20,7 @@ commands = [{'1': {'menu_cmd': 1, 'menu_title': 'Яндекс диск;',
             {'1': {'menu_cmd': 1, 'menu_title': 'ВКонтакте;',
                    'name': 'ВКонтакте', 'url': 'https://api.vk.com/method/', 'version': '5.131'},
              '2': {'menu_cmd': 2, 'menu_title': 'Однокласники;',
-                   'name': 'Одноклассники', 'url': 'https://api.ok.ru/api/'},
+                   'name': 'Одноклассники', 'url': 'https://api.ok.ru/fb.do'},
              '3': {'menu_cmd': 3, 'menu_title': 'Инстаграмм;',
                    'name': 'Инстаграмм', 'url': 'https://www.instagram.com/developer/'},
              '9': {'menu_cmd': 9, 'menu_title': 'возврат в предыдущее меню;'},
@@ -303,8 +303,9 @@ def photos_get(resource) -> list:
 
     #  Проверка выбранного сервиса из пунктов меню 2 - Одноклассники
     elif resource["menu_cmd"] == 2:
-        resource['id'] = 86398975150
-        resource['token'] = '147e458add283390f4cab7f38196fd72'
+        # resource['id'] = 86398975150
+        resource['id'] = 124259708046
+        resource['token'] = 'fce0929123ad4555a1d716a151d0c470'
 
         client_ok = OKUser(resource['url'], resource['token'])
         print(client_ok)
