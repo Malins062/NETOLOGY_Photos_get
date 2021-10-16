@@ -106,11 +106,10 @@ def main(cmd):
                 elif status_command['resource']['menu_cmd'] == 9:
                     is_menu_out = True
                 else:
-                    init_screen()
-
                     # Ввод необходимых данных ID-пользователя и ключа доступа к ресурсу
                     if input_data_for_read(status_command["resource"]):
-                        print(f'\n1. ВХОДНЫЕ ДАННЫЕ.\nРесурс импорта - {status_command["resource"]["name"]}\n')
+                        init_screen()
+                        print(f'1. ВХОДНЫЕ ДАННЫЕ.\nРесурс импорта - {status_command["resource"]["name"]}\n')
                         print('2. СВЕДЕНИЯ О ФАЙЛАХ НА СЕРВЕРЕ.')
 
                         files_to_download = photos_get(status_command['resource'])
@@ -129,11 +128,13 @@ def main(cmd):
                                     upload_files(status_command)
 
                                 # Сохранение данных в журнал
-                                save_file_json(status_command['destination']['files'], file_log_name)
-
-                                print(f'Результаты загрузки файлов на ресурс {status_command["destination"]["name"]}:')
-                                print_list_files(status_command['destination']['files'],
-                                                 ['file_name', 'height', 'width', 'log_upload'])
+                                if save_file_json(status_command['destination']['files'], file_log_name):
+                                    print('3. ВЫГРУЗКА ДАННЫХ НА СЕРВЕР.')
+                                    print(f'Результаты загрузки файлов на ресурс '
+                                          f'{status_command["destination"]["name"]}:')
+                                    print_list_files(status_command['destination']['files'],
+                                                     ['file_name', 'height', 'width', 'log_upload'])
+                                    print(f'Список обработанных файлов сохранен в json-файл: {file_log_name}.')
                                 input('\nДля продолжения работы нажмите клавишу "Enter"...')
                         else:
                             print('\nНет доступных фотографий для скачивания!\n')
@@ -288,36 +289,21 @@ def photos_get(resource) -> list:
     """
     #  Проверка выбранного сервиса из пунктов меню 1 - Вконтакте
     if resource["menu_cmd"] == 1:
-        # resource['id'] = 552934290
-        # resource['token'] = '958eb5d439726565e9333aa30e50e0f937ee432e927f0dbd541c541887d919a7c56f95c04217915c32008'
-
-        client_vk = VKUser(resource['url'], resource['token'], resource['version'])
-        print(client_vk)
-        resource['files'] = client_vk.get_photos(resource['id'])
-        if isinstance(resource['files'], dict) and resource['files'].get('error_code', False):
-            print(f'Ошибка при чтении списка фотографий!\n '
-                  f'Код ошибки: {resource["files"]["error_code"]} - {resource["files"]["error_msg"]}.')
-            return []
-        else:
-            return resource['files']
-
+        client = VKUser(resource['url'], resource['token'])
     #  Проверка выбранного сервиса из пунктов меню 2 - Одноклассники
     elif resource["menu_cmd"] == 2:
-        # resource['id'] = 86398975150
-        resource['id'] = 124259708046
-        resource['token'] = 'fce0929123ad4555a1d716a151d0c470'
+        client = OKUser(resource['url'], resource['token'])
+    else:
+        return []
 
-        client_ok = OKUser(resource['url'], resource['token'])
-        print(client_ok)
-        resource['files'] = client_ok.get_photos(resource['id'])
-        if isinstance(resource['files'], dict) and resource['files'].get('error_code', False):
-            print(f'Ошибка при чтении списка фотографий!\n '
-                  f'Код ошибки: {resource["files"]["error_code"]} - {resource["files"]["error_msg"]}.')
-            return []
-        else:
-            return resource['files']
-
-    return []
+    print(client)
+    resource['files'] = client.get_photos(resource['id'])
+    if isinstance(resource['files'], dict) and resource['files'].get('error_code', False):
+        print(f'Ошибка при чтении списка фотографий!\n '
+              f'Код ошибки: {resource["files"]["error_code"]} - {resource["files"]["error_msg"]}.')
+        return []
+    else:
+        return resource['files']
 
 
 def print_list_files(list_files, columns):

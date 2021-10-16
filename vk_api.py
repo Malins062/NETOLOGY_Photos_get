@@ -6,7 +6,7 @@ class VKUser:
     Класс для работы с API Вконтакте
     """
 
-    def __init__(self, url, token, version):
+    def __init__(self, url, token, version='5.131'):
         self.url = url
         self.params = {
             'access_token': token,

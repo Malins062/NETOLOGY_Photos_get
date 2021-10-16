@@ -10,7 +10,6 @@ class OKUser:
     # Параметры приложения API
     application_id = 512000933212
     application_key = 'CNFODDKGDIHBABABA'
-    application_secret_key = 'tkn10fo7E9dQcFKdmWLkCDe9Q650hJtATdEeAxZnKvoK7tf7gpuAQvuONKryEoy0IMdXG'
     access_token = 'tkn1sj0BQ94qGFESvnA8kwIa7QQTy2whiRrCVzoNi9EMx62anC9vAXjPXCNIYgi21W1Zd'
 
     def __init__(self, url, token):
@@ -34,7 +33,7 @@ class OKUser:
             'application_key': self.application_key,
             'fid': owner_id,
             'fields': 'photo.like_count, photo.pic_max, photo.text, photo.standard_height, '
-                      'photo.standard_width, photo.preview_data, photo.type',
+                      'photo.standard_width, photo.preview_data, photo.type, user_photo.created_ms',
             'format': 'json',
             'method': 'photos.getPhotos',
         }
@@ -63,22 +62,28 @@ class OKUser:
             # Создание словаря лайков фотографий, у которых совпадает количество лайков
             repeat_likes = {}
             for value in res['photos']:
-                if value['mark_count'] in repeat_likes:
-                    repeat_likes[value['mark_count']] += 1
+                if value['like_count'] in repeat_likes:
+                    repeat_likes[value['like_count']] += 1
                 else:
-                    repeat_likes[value['mark_count']] = 1
+                    repeat_likes[value['like_count']] = 1
 
-            # Перебор всех данных по ключу 'photos'
+            # Определение самой большой фотографии: сортировка списка фотографий по высоте и ширине
+            res['photos'] = sorted(res['photos'],
+                                   key=lambda x: x['standard_height'] + x['standard_width'],
+                                   reverse=True)
+
+            # Перебор всех данных в словаре res по ключу 'photos'
             for value in res['photos']:
-                # Определение самой большой фотографии: сортировка списка фотографий по высоте и ширине
-                file_params = sorted(value['sizes'], key=lambda x: x['height'] + x['width'], reverse=True)[0]
-
+                # Необходимые значения скачиваемого файла для выходного json-файла
+                file_params = {'type': value['type'],
+                               'height': value['standard_height'],
+                               'width': value['standard_width'],
+                               'url': value['pic_max']}
                 # Создание имени фотографии в формате: id_likes.jpg
-                if repeat_likes.get(value['mark_count'], 0) > 1:
-                    file_params['file_name'] = str(value['mark_count']) + '_' + str(value['date']) + '.jpg'
+                if repeat_likes.get(value['like_count'], 0) > 1:
+                    file_params['file_name'] = str(value['like_count']) + '_' + str(value['created_ms']) + '.jpg'
                 else:
-                    file_params['file_name'] = str(value['mark_count']) + '.jpg'
-
+                    file_params['file_name'] = str(value['like_count']) + '.jpg'
                 # Добавление фото в результирующий список
                 list_files.append(file_params)
             return list_files
