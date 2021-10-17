@@ -4,6 +4,7 @@ import json
 import pandas as pd
 from vk_api import VKUser
 from ok_api import OKUser
+from instagram_api import InstagramUser
 from ya_disk_api import YaDiskUser
 from progress.bar import IncrementalBar
 
@@ -22,7 +23,7 @@ commands = [{'1': {'menu_cmd': 1, 'menu_title': 'Яндекс диск;',
              '2': {'menu_cmd': 2, 'menu_title': 'Однокласники;',
                    'name': 'Одноклассники', 'url': 'https://api.ok.ru/fb.do'},
              '3': {'menu_cmd': 3, 'menu_title': 'Инстаграмм;',
-                   'name': 'Инстаграмм', 'url': 'https://www.instagram.com/developer/'},
+                   'name': 'Инстаграмм', 'url': 'https://graph.instagram.com', 'version': 'v12.0'},
              '9': {'menu_cmd': 9, 'menu_title': 'возврат в предыдущее меню;'},
              '0': {'menu_cmd': 0, 'menu_title': 'выход из программы.\n'}
              }
@@ -287,12 +288,17 @@ def photos_get(resource) -> list:
     :return: список доступных файлов для скачивания c заданного сетевого ресурса,
     если возникла ошибка - печать ошибки и возращает пустой список
     """
+    resource['id'] = 'alexei9389'
+    resource['token'] = 'IGQVJVbm5ST2hycC1HRWRjUTNWTGxiVGduTDBYc0FfSXdPNlBya3ZA6aXFfUW9iZA0o4MVhvdDdkbFVIVW00WU9wME16NHVsT0JOWUtKS21KczM3eldYbTZAkQ2NMWTVhY3RaTzRfb2xwZAlhGNmxzWUx6dwZDZD'
     #  Проверка выбранного сервиса из пунктов меню 1 - Вконтакте
     if resource["menu_cmd"] == 1:
         client = VKUser(resource['url'], resource['token'])
     #  Проверка выбранного сервиса из пунктов меню 2 - Одноклассники
     elif resource["menu_cmd"] == 2:
         client = OKUser(resource['url'], resource['token'])
+    #  Проверка выбранного сервиса из пунктов меню 3 - Инстаграм
+    elif resource["menu_cmd"] == 3:
+        client = InstagramUser(resource['url'], resource['token'])
     else:
         return []
 
