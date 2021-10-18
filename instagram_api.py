@@ -11,10 +11,12 @@ class InstagramUser:
     # application_id = 168400752147982
     secret_key = 'fbecd9b2130448aa4ae5bd3d08ea0714'
     url_auth = 'https://api.instagram.com/oauth/authorize'
+    url_media = 'https://graph.instagram.com/me/media'
 
     def __init__(self, url, token, version='v12.0'):
         self.url = url + '/' + version
         self.token = token
+        self.version_api = version
         self.params = {
             'fields': 'id, user_name, media_count',
             'access_token': token
@@ -41,20 +43,42 @@ class InstagramUser:
         #     'format': 'json',
         #     'method': 'photos.getPhotos',
         # }
-
-        params_auth = {
-            'client_id': self.application_id,
-            'client_secret': self.secret_key,
-            'grant_type': 'authorization_code',
-            'redirect_uri': 'https://localhost/',
-            'code': self.token
-        }
-        headers_auth = {'Content-Type': 'application/x-www-form-urlencoded'}
-
+        # code = 'AQATdhAKUtbRV2JIq6ASKqN1kK6mppZ_GM-n6yv7NHIaqZBtcZcVgN7H3IZBLJre9XMXqfd8IY2GWyqYQEZyq5Y1BMiJIOiE33MbLG7yPWCecYmKfPPV1AVPTA-fJ5oXj8yQL5udoq6vVYAIYApS2cu4tg44CSoLqsxAk7E7tnMA22vbpE6005sTJsF0p-tG3FtqnxvL_tnWs0CBSA2dtuGQA0ifs79pJ4orYplB5Jvn8w'
+        # params_auth = {
+        #     'client_id': self.application_id,
+        #     'client_secret': self.secret_key,
+        #     'grant_type': 'authorization_code',
+        #     'redirect_uri': 'https://localhost/',
+        #     'code': code
+        # }
+        # headers_auth = {'Content-Type': 'application/x-www-form-urlencoded'}
+        #
         # res = requests.post(self.url_auth, data=params_auth, headers=headers_auth)
-        res = requests.get('https://api.instagram.com/v12.0/users/search?q=' + owner_id + '&access_token=' +
-                           self.token, verify=True)
+        # res = res.text.json()
+
+        # token = 'EAACZAKNsCZCg4BANWZCWpqZBtnK5ZAN2ZAPYGYQsqlHbBD20iNe99hJlqZCRx0d2miXH24DgjsqywDA4Mmdotg86miuadMQSiSUP999gmNhdp3FI73qNBiZBJslHeOdNmc19cbfHqolJfbo63yeqhHX0CVUP7g9SDFdBAiBqk1tHMEKaiCOnev3F9WZCuoUmquoAoSS1W9wBCTwZDZD'
+        # token = '168400752147982|JT1zZL6oummnltnuwghXjO5uQgY'
+        # params_auth = {
+        #     'client_id': self.application_id,
+        #     'client_secret': self.secret_key,
+        #     'grant_type': 'ig_exchange_token',
+        #     'access_token': token
+        # }
+        # self.url_auth = 'https://graph.instagram.com/oauth/access_token'
+        # res = requests.get(self.url_auth, data=params_auth)
+        # res.json()
+        #
+        # res = requests.get('https://api.instagram.com/v1/users/search?q=' + owner_id + '&access_token=' +
+        #                    # self.token, verify=True)
+        #                    self.token)
+        params = {
+            # 'fields': 'id, name',
+            # 'fields': 'id, name, user_photos',
+            'access_token': self.token
+        }
+        res = requests.get('https://graph.instagram.com/' + self.version_api + '/' + owner_id + '/media', params=params)
         res = res.json()
+
         # Запрос к ресурсу
         # res = requests.get(self.url + '/' + owner_id, params=self.params)
         # res = res.json()

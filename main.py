@@ -288,8 +288,8 @@ def photos_get(resource) -> list:
     :return: список доступных файлов для скачивания c заданного сетевого ресурса,
     если возникла ошибка - печать ошибки и возращает пустой список
     """
-    resource['id'] = 'alexei9389'
-    resource['token'] = 'IGQVJVbm5ST2hycC1HRWRjUTNWTGxiVGduTDBYc0FfSXdPNlBya3ZA6aXFfUW9iZA0o4MVhvdDdkbFVIVW00WU9wME16NHVsT0JOWUtKS21KczM3eldYbTZAkQ2NMWTVhY3RaTzRfb2xwZAlhGNmxzWUx6dwZDZD'
+    resource['id'] = '4116076971830826'
+    resource['token'] = 'IGQVJYOHRITXNIUU5SODlvU1JzbzBkQVhxbG1fXzZABVVRWdkNtM052eE93dTNPZAEI4LUh5Y2I2M2ZAvOF9NOXZATQlQyd29kVlM3dS0tS3pWOUVxYUNLVkRKOUNBWjdUZAzNtS0c0N3RJRmVLaWk2VHV0RAZDZD'
     #  Проверка выбранного сервиса из пунктов меню 1 - Вконтакте
     if resource["menu_cmd"] == 1:
         client = VKUser(resource['url'], resource['token'])
