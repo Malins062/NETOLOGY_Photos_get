@@ -7,7 +7,7 @@
 ### Входные данные.
 1. Выбор сетевого ресурса для сохранения выбранных фотографий:
     * [Яндекс диск](https://yandex.ru/dev/disk/poligon/);
-    * [Google drive](https://drive.google.com/drive/my-drive).
+    * [Google drive](https://drive.google.com/drive/my-drive) (в процессе разработки).
 2. Выбор сетевого ресурсо импорта фотографий:
    * [ВКонтакте vk.com](https://vk.com/);
    * [Одноклассники ok.ru](https://ok.ru/).
