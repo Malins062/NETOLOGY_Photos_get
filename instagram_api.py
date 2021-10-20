@@ -66,7 +66,7 @@ class InstagramUser:
             if not ig_media_id:
                 continue
             else:
-                res_photo = requests.get(self.url + '/v12.0/' + ig_media_id, params={**params, **params_photo}).json()
+                res_photo = requests.get(self.url + '/v12.0/' + ig_media_id, params={**params, **params_photo})
 
                 # Проверка результата ответа сервера на ошибку
                 res_photo = self._verify_error(res_photo)
