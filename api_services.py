@@ -6,7 +6,6 @@ class ClientApi:
     """
     Общий класс для API клиента
     """
-
     def __init__(self, url, token, version=''):
         self.url = url
         self.token = token
@@ -206,7 +205,7 @@ class InstagramUser(ClientApi):
     """
 
     def __init__(self, url, token, version='v12.0'):
-        super().__init__(url, token)
+        super().__init__(url, token, version)
         self.version = version
 
     def get_photos(self, owner_id=None) -> list:
@@ -219,7 +218,6 @@ class InstagramUser(ClientApi):
         # Выборка списка ID доступных фотографий
         params = {'access_token': self.token}
         res = requests.get(self.url + '/' + self.version + '/' + owner_id + '/media', params=params)
-
         res = _verify_error(res)
         # Проверка результата ответа сервера на ошибку
         if res.get('error_code', False):

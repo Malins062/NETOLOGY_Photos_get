@@ -4,10 +4,10 @@ import json
 import pandas as pd
 from vk_api import VKUser
 from ok_api import OKUser
-from instagram_api import InstagramUser
 from ya_disk_api import YaDiskUser
 from progress.bar import IncrementalBar
 from stdiomask import getpass
+import api_services
 
 # Название программы, выводимое на экран
 TITLE_PROGRAM = '--- РЕЗЕРВНОЕ КОПИРОВАНИЕ ФОТОМАТЕРИАЛОВ НА ОБЛАЧНЫЙ СЕРВИС ---'
@@ -319,7 +319,7 @@ def photos_get(resource) -> list:
         client = OKUser(resource['url'], resource['token'])
     #  Проверка выбранного сервиса из пунктов меню 3 - Инстаграм
     elif resource["menu_cmd"] == 3:
-        client = InstagramUser(resource['url'], resource['token'])
+        client = api_services.InstagramUser(resource['url'], resource['token'], resource['version'])
     else:
         return []
 
