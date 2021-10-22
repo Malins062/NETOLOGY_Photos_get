@@ -161,17 +161,15 @@ def main(cmd):
 
 
 def download_files(data):
-    # client_vk = VKUser(data['resource']['url'], data['resource']['token'], data['resource']['version'])
-    #
-    # print('Ожидайте, идет скачивание файлов с сетевого ресурса...')
-    # bar = IncrementalBar('Скачивание: ', max=len(data['resource']['files']))
-    # # for f in range(len(data['resource']['files'])):
-    # for f in data['resource']['files']:
-    #     client_vk.download_photo(f['url'], 'TEMP')
-    #     time.sleep(5)
-    #     bar.next()
-    # bar.finish()
-    print('Скачивание завершено.')
+    print('\nОжидайте, идет скачивание файлов с сетевого ресурса...')
+    suffix = '%(percent)d%%.'
+    bar = IncrementalBar('Процесс - ', color='red', suffix=suffix, max=len(data['resource']['files']))
+    for f in data['resource']['files']:
+        bar.suffix = '{sfx} Скачивается временный файл: {f_name} ...'.format(f_name=f["file_name"], sfx=suffix)
+        api_services.download_photo(f['url'], 'TEMP')
+        bar.next()
+    bar.finish()
+    print('Скачивание завершено.\n')
 
 
 def upload_files(data):
@@ -209,7 +207,7 @@ def upload_files(data):
     bar.next()
     bar.finish()
 
-    print(f'Выгрузка файлов завершена.\n')
+    print('Выгрузка файлов завершена.\n')
 
 
 def save_file_json(data, file_name):
@@ -324,9 +322,9 @@ def photos_get(resource) -> list:
 
     print(client)
     resource['files'] = client.get_photos(resource['id'])
-    if isinstance(resource['files'], dict) and resource['files'].get('error_code', False):
+    if isinstance(resource['files'][0], dict) and resource['files'][0].get('error_code', False):
         print(f'Ошибка при чтении списка фотографий!\n '
-              f'Код ошибки: {resource["files"]["error_code"]} - {resource["files"]["error_msg"]}.')
+              f'Код ошибки: {resource["files"][0]["error_code"]} - {resource["files"][0]["error_msg"]}.')
         return []
     else:
         return resource['files']

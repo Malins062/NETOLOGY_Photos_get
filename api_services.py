@@ -40,7 +40,8 @@ def _verify_error(res) -> dict:
             return error_list
         elif 'error_message' in res:
             error_list = {
-                'error_code': f'{res["error_message"].get("code", "-2")} - {res["error_message"].get("error_type", "-1")}',
+                'error_code': f'{res["error_message"].get("code", "-2")} - '
+                              f'{res["error_message"].get("error_type", "-1")}',
                 'error_msg': res['error_message']
             }
             return error_list
@@ -86,7 +87,7 @@ class VKUser(ClientApi):
         # Проверка результата ответа сервера на ошибку
         res = _verify_error(res)
         if res.get('error_code', False):
-            return res
+            return [res]
         # Проверка на наличие необходимых данных в ответе сервера
         elif 'response' in res and 'items' in res['response']:
             list_files = []
@@ -114,7 +115,7 @@ class VKUser(ClientApi):
                 list_files.append(file_params)
             return list_files
         else:
-            return res
+            return [res]
 
 
 class OKUser(ClientApi):
@@ -163,7 +164,7 @@ class OKUser(ClientApi):
         # Проверка результата ответа сервера на ошибку
         res = _verify_error(res)
         if res.get('error_code', False):
-            return res
+            return [res]
 
         # Проверка на наличие необходимых данных в ответе сервера
         elif 'photos' in res:
@@ -198,7 +199,7 @@ class OKUser(ClientApi):
                 list_files.append(file_params)
             return list_files
         else:
-            return res
+            return [res]
 
 
 class InstagramUser(ClientApi):
@@ -222,7 +223,7 @@ class InstagramUser(ClientApi):
         # Проверка результата ответа сервера на ошибку
         res = _verify_error(res)
         if res.get('error_code', False):
-            return res
+            return [res]
 
         # Результирующий список фотографий
         list_files = []
@@ -241,7 +242,7 @@ class InstagramUser(ClientApi):
                 # Проверка результата ответа сервера на ошибку
                 res_photo = _verify_error(res_photo)
                 if res_photo.get('error_code', False):
-                    return res_photo
+                    return [res_photo]
 
                 # Словарь данных о фотографии
                 file_params = {}
@@ -275,8 +276,3 @@ def download_photo(url, disk_file_path):
             for content in res.iter_content(1024):
                 if content:
                     image.write(content)
-    # Проверка результата ответа сервера на ошибку
-    if 'error' in res:
-        return res['error']
-    else:
-        return res
