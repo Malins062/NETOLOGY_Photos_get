@@ -39,7 +39,7 @@ def _verify_error(res):
     return res
 
 
-class OKUser:
+class OKUser(ClientApi):
     """
     Класс для работы с API Одноклассники
     """
@@ -49,15 +49,9 @@ class OKUser:
     application_key = 'CNFODDKGDIHBABABA'
     access_token = 'tkn1sj0BQ94qGFESvnA8kwIa7QQTy2whiRrCVzoNi9EMx62anC9vAXjPXCNIYgi21W1Zd'
 
-    def __init__(self, url, token):
-        self.url = url
+    def __init__(self, url, token, version=''):
+        super().__init__(url, token, version)
         self.session_secret_key = token
-
-    def __str__(self):
-        return f'Адрес API: {self.url}\n' \
-               f'Параметры get-запроса:\n' \
-               f'\t* ключ доступа - {self.session_secret_key[:5]}...' \
-               f'{self.session_secret_key[len(self.session_secret_key)-5:]}\n'
 
     def get_photos(self, owner_id=None) -> list:
         """
@@ -128,23 +122,16 @@ class OKUser:
             return res
 
 
-class VKUser:
+class VKUser(ClientApi):
     """
     Класс для работы с API Вконтакте
     """
-    def __init__(self, url, token, version='5.131'):
-        self.url = url
+    def __init__(self, url, token, version=''):
+        super().__init__(url, token, version)
         self.params = {
             'access_token': token,
             'v': version,
         }
-
-    def __str__(self):
-        return f'Адрес API: {self.url}\n' \
-               f'Параметры get-запроса:\n' \
-               f'\t* версия протокола - {self.params["v"]}\n' \
-               f'\t* ключ доступа - {self.params["access_token"][:5]}...' \
-               f'{self.params["access_token"][len(self.params["access_token"]) - 5:]}\n'
 
     def get_photos(self, owner_id=None, album_id='profile') -> list:
         """
@@ -203,10 +190,8 @@ class InstagramUser(ClientApi):
     """
     Класс для работы с API Instagram
     """
-
-    def __init__(self, url, token, version='v12.0'):
+    def __init__(self, url, token, version=''):
         super().__init__(url, token, version)
-        self.version = version
 
     def get_photos(self, owner_id=None) -> list:
         """
@@ -218,12 +203,11 @@ class InstagramUser(ClientApi):
         # Выборка списка ID доступных фотографий
         params = {'access_token': self.token}
         res = requests.get(self.url + '/' + self.version + '/' + owner_id + '/media', params=params)
-        res = _verify_error(res)
+
         # Проверка результата ответа сервера на ошибку
+        res = _verify_error(res)
         if res.get('error_code', False):
             return res
-
-        # res = res.json()
 
         # Результирующий список фотографий
         list_files = []
@@ -241,15 +225,8 @@ class InstagramUser(ClientApi):
 
                 # Проверка результата ответа сервера на ошибку
                 res_photo = _verify_error(res_photo)
-                # Проверка результата ответа сервера на ошибку
                 if res_photo.get('error_code', False):
                     return res_photo
-                # if self._verify_error(res_photo):
-                #     return res_photo
-                # if 'error_message' in res_photo:
-                #     res['error_code'] = f'{res["code"]} - {res["error_type"]}'
-                #     res['error_msg'] = res['error_message']
-                #     return res
 
                 # Словарь данных о фотографии
                 file_params = {}
