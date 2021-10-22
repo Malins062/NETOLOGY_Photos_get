@@ -1,5 +1,6 @@
 import requests
 import hashlib
+import os
 
 
 class ClientApi:
@@ -13,20 +14,33 @@ class ClientApi:
         self.error_list = []
 
     def __str__(self):
+        version = (self.version if self.version else 'отстутсвует')
         return f'Адрес API: {self.url}\n' \
                f'Параметры get-запроса:\n' \
-               f'\t* версия протокола - {self.version};\n' \
+               f'\t* версия протокола - {version};\n' \
                f'\t* ключ доступа - {self.token[:5]}...' \
                f'{self.token[len(self.token) - 5:]}\n'
 
 
-def _verify_error(res):
+def _verify_error(res) -> dict:
+    """
+    Функция перевода res в формат json.
+    Проверка на ошибки в res и возврат словаря ошибок или полученный ответ res.json()
+    :param res: ответ от сервера полученный get запросом
+    :return: res.json() или словарь с ошибками
+    """
     try:
         res.raise_for_status()
         res = res.json()
-        if 'error_message' in res:
+        if 'error' in res:
             error_list = {
-                'error_code': f'{res["code"]} - {res["error_type"]}',
+                'error_code': f'{res["error"].get("error_code", "-1")}',
+                'error_msg': res["error"].get("error_msg", "-2")
+            }
+            return error_list
+        elif 'error_message' in res:
+            error_list = {
+                'error_code': f'{res["error_message"].get("code", "-2")} - {res["error_message"].get("error_type", "-1")}',
                 'error_msg': res['error_message']
             }
             return error_list
@@ -37,6 +51,70 @@ def _verify_error(res):
         }
         return error_list
     return res
+
+
+class VKUser(ClientApi):
+    """
+    Класс для работы с API Вконтакте
+    """
+    def __init__(self, url, token, version=''):
+        super().__init__(url, token, version)
+        self.params = {
+            'access_token': token,
+            'v': version,
+        }
+
+    def get_photos(self, owner_id=None, album_id='profile') -> list:
+        """
+        Метод создания запроса к странице ВКонтакте для получения списка доступных фотографий
+        :param owner_id: id пользователя страницы ВКонтакте
+        :param album_id: profile, saved или
+        :return: список найденных фотографий или ошибку
+        """
+        # URL запроса
+        photos_url = self.url + 'photos.get'
+        # Параметры запроса
+        photos_params = {
+            'extended': 1,
+            'owner_id': owner_id,
+            'album_id': album_id
+        }
+
+        # Запрос к ресурсу
+        res = requests.get(photos_url, params={**self.params, **photos_params})
+
+        # Проверка результата ответа сервера на ошибку
+        res = _verify_error(res)
+        if res.get('error_code', False):
+            return res
+        # Проверка на наличие необходимых данных в ответе сервера
+        elif 'response' in res and 'items' in res['response']:
+            list_files = []
+
+            # Создание словаря лайков фотографий, у которых совпадает количество лайков
+            repeat_likes = {}
+            for value in res['response']['items']:
+                if value['likes']['count'] in repeat_likes:
+                    repeat_likes[value['likes']['count']] += 1
+                else:
+                    repeat_likes[value['likes']['count']] = 1
+
+            # Перебор всех данных по ключу 'items'
+            for value in res['response']['items']:
+                # Определение самой большой фотографии: сортировка списка фотографий по высоте и ширине
+                file_params = sorted(value['sizes'], key=lambda x: x['height'] + x['width'], reverse=True)[0]
+
+                # Создание имени фотографии в формате: id_likes.jpg
+                if repeat_likes.get(value['likes']['count'], 0) > 1:
+                    file_params['file_name'] = str(value['likes']['count']) + '_' + str(value['date']) + '.jpg'
+                else:
+                    file_params['file_name'] = str(value['likes']['count']) + '.jpg'
+
+                # Добавление фото в результирующий список
+                list_files.append(file_params)
+            return list_files
+        else:
+            return res
 
 
 class OKUser(ClientApi):
@@ -80,10 +158,11 @@ class OKUser(ClientApi):
         }
 
         # Запрос к ресурсу
-        res = requests.get(self.url, params={**photos_params, **sig_params}).json()
+        res = requests.get(self.url, params={**photos_params, **sig_params})
 
         # Проверка результата ответа сервера на ошибку
-        if 'error_code' in res:
+        res = _verify_error(res)
+        if res.get('error_code', False):
             return res
 
         # Проверка на наличие необходимых данных в ответе сервера
@@ -115,70 +194,6 @@ class OKUser(ClientApi):
                     file_params['file_name'] = str(value['like_count']) + '_' + str(value['created_ms']) + '.jpg'
                 else:
                     file_params['file_name'] = str(value['like_count']) + '.jpg'
-                # Добавление фото в результирующий список
-                list_files.append(file_params)
-            return list_files
-        else:
-            return res
-
-
-class VKUser(ClientApi):
-    """
-    Класс для работы с API Вконтакте
-    """
-    def __init__(self, url, token, version=''):
-        super().__init__(url, token, version)
-        self.params = {
-            'access_token': token,
-            'v': version,
-        }
-
-    def get_photos(self, owner_id=None, album_id='profile') -> list:
-        """
-        Метод создания запроса к странице ВКонтакте для получения списка доступных фотографий
-        :param owner_id: id пользователя страницы ВКонтакте
-        :param album_id: profile, saved или
-        :return: список найденных фотографий или ошибку
-        """
-        # URL запроса
-        photos_url = self.url + 'photos.get'
-        # Параметры запроса
-        photos_params = {
-            'extended': 1,
-            'owner_id': owner_id,
-            'album_id': album_id
-        }
-
-        # Запрос к ресурсу
-        res = requests.get(photos_url, params={**self.params, **photos_params}).json()
-
-        # Проверка результата ответа сервера на ошибку
-        if 'error' in res:
-            return res['error']
-
-        # Проверка на наличие необходимых данных в ответе сервера
-        elif 'response' in res and 'items' in res['response']:
-            list_files = []
-
-            # Создание словаря лайков фотографий, у которых совпадает количество лайков
-            repeat_likes = {}
-            for value in res['response']['items']:
-                if value['likes']['count'] in repeat_likes:
-                    repeat_likes[value['likes']['count']] += 1
-                else:
-                    repeat_likes[value['likes']['count']] = 1
-
-            # Перебор всех данных по ключу 'items'
-            for value in res['response']['items']:
-                # Определение самой большой фотографии: сортировка списка фотографий по высоте и ширине
-                file_params = sorted(value['sizes'], key=lambda x: x['height'] + x['width'], reverse=True)[0]
-
-                # Создание имени фотографии в формате: id_likes.jpg
-                if repeat_likes.get(value['likes']['count'], 0) > 1:
-                    file_params['file_name'] = str(value['likes']['count']) + '_' + str(value['date']) + '.jpg'
-                else:
-                    file_params['file_name'] = str(value['likes']['count']) + '.jpg'
-
                 # Добавление фото в результирующий список
                 list_files.append(file_params)
             return list_files
@@ -245,23 +260,23 @@ class InstagramUser(ClientApi):
         return list_files
 
 
-# def download_photo(self, url, disk_file_path):
-#     photo_params = {"path": disk_file_path, "overwrite": "true"}
-#     # Запрос к ресурсу
-#     # res = requests.get(url, params={**self.params, **photo_params})
-#
-#     res = requests.get(url, stream=True, allow_redirects=True)
-#     realurl = res.url.split('/')[-1].split('?')[0]
-#
-#     filepath = os.path.join(disk_file_path, realurl)
-#
-#     with open(filepath, 'wb') as image:
-#         if res.ok:
-#             for content in res.iter_content(1024):
-#                 if content:
-#                     image.write(content)
-#     # Проверка результата ответа сервера на ошибку
-#     if 'error' in res:
-#         return res['error']
-#     else:
-#         return res
+def download_photo(url, disk_file_path):
+    # photo_params = {"path": disk_file_path, "overwrite": "true"}
+    # Запрос к ресурсу
+    # res = requests.get(url, params={**self.params, **photo_params})
+
+    res = requests.get(url, stream=True, allow_redirects=True)
+    realurl = res.url.split('/')[-1].split('?')[0]
+
+    filepath = os.path.join(disk_file_path, realurl)
+
+    with open(filepath, 'wb') as image:
+        if res.ok:
+            for content in res.iter_content(1024):
+                if content:
+                    image.write(content)
+    # Проверка результата ответа сервера на ошибку
+    if 'error' in res:
+        return res['error']
+    else:
+        return res

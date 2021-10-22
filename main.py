@@ -309,11 +309,6 @@ def photos_get(resource) -> list:
     :return: список доступных файлов для скачивания c заданного сетевого ресурса,
     если возникла ошибка - печать ошибки и возращает пустой список
     """
-    # resource['id'] = '59793098'
-    # resource['token'] = '36902a3ecf16fe5487cbf1b43a94e687ac8fc31a35d44f26a9828581006917546f9df13b0c3b0ccbb63e336902a3ecf16fe5487cbf1b43a94e687ac8fc31a35d44f26a9828581006917546f9df13b0c3b0ccbb63e3'
-
-    # resource['id'] = '4116076971830826'
-    # resource['token'] = 'IGQVJYOHRITXNIUU5SODlvU1JzbzBkQVhxbG1fXzZABVVRWdkNtM052eE93dTNPZAEI4LUh5Y2I2M2ZAvOF9NOXZATQlQyd29kVlM3dS0tS3pWOUVxYUNLVkRKOUNBWjdUZAzNtS0c0N3RJRmVLaWk2VHV0RAZDZD'
 
     #  Проверка выбранного сервиса из пунктов меню 1 - Вконтакте
     if resource["menu_cmd"] == 1:
