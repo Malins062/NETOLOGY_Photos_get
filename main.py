@@ -2,9 +2,6 @@
 import os
 import json
 import pandas as pd
-from vk_api import VKUser
-from ok_api import OKUser
-from ya_disk_api import YaDiskUser
 from progress.bar import IncrementalBar
 from stdiomask import getpass
 import api_services
@@ -13,21 +10,23 @@ import api_services
 TITLE_PROGRAM = '--- РЕЗЕРВНОЕ КОПИРОВАНИЕ ФОТОМАТЕРИАЛОВ НА ОБЛАЧНЫЙ СЕРВИС ---'
 
 # Список допустимых команд программы, их описание и назначение необходимых параметров для каждого пункта
-commands = [{'1': {'menu_cmd': 1, 'menu_title': 'Яндекс диск;',
-                   'name': 'Яндекс диск', 'url': 'https://yandex.ru/dev/disk/poligon/'},
-             '2': {'menu_cmd': 2, 'menu_title': 'Google drive (в процессе разработки);',
-                   'name': 'GoogleDrive API', 'url': ''},
-             '0': {'menu_cmd': 0, 'menu_title': 'выход из программы.\n'}
-             },
-            {'1': {'menu_cmd': 1, 'menu_title': 'ВКонтакте;',
-                   'name': 'ВКонтакте', 'url': 'https://api.vk.com/method/', 'version': '5.131'},
-             '2': {'menu_cmd': 2, 'menu_title': 'Однокласники;',
-                   'name': 'Одноклассники', 'url': 'https://api.ok.ru/fb.do'},
-             '3': {'menu_cmd': 3, 'menu_title': 'Инстаграмм;',
-                   'name': 'Инстаграмм', 'url': 'https://graph.instagram.com', 'version': 'v12.0'},
-             '9': {'menu_cmd': 9, 'menu_title': 'возврат в предыдущее меню;'},
-             '0': {'menu_cmd': 0, 'menu_title': 'выход из программы.\n'}
-             }
+commands = [['Выберите ресурс назначения копирования фотографий:',
+             {'1': {'menu_cmd': 1, 'menu_title': 'Яндекс диск;', 'menu_api': 'YaDiskUser',
+                    'name': 'Яндекс диск', 'url': 'https://cloud-api.yandex.net/v1/disk/resources/upload'},
+              '2': {'menu_cmd': 2, 'menu_title': 'Google drive (в процессе разработки);',
+                    'name': 'GoogleDrive API', 'url': ''},
+              '0': {'menu_cmd': 0, 'menu_title': 'выход из программы.\n'}
+              }],
+            ['Выберите источник копирования фотографий:',
+             {'1': {'menu_cmd': 1, 'menu_title': 'ВКонтакте;', 'menu_api': 'VKUser',
+                    'name': 'ВКонтакте', 'url': 'https://api.vk.com/method/', 'version': '5.131'},
+              '2': {'menu_cmd': 2, 'menu_title': 'Однокласники;', 'menu_api': 'OKUser',
+                    'name': 'Одноклассники', 'url': 'https://api.ok.ru/fb.do', 'version': ''},
+              '3': {'menu_cmd': 3, 'menu_title': 'Инстаграмм;', 'menu_api': 'InstagramUser',
+                    'name': 'Инстаграмм', 'url': 'https://graph.instagram.com', 'version': 'v12.0'},
+              '9': {'menu_cmd': 9, 'menu_title': 'возврат в предыдущее меню;'},
+              '0': {'menu_cmd': 0, 'menu_title': 'выход из программы.\n'}
+              }]
             ]
 
 # Признак несуществующей команды меню
@@ -54,21 +53,32 @@ def invalid_command(err_cmd):
     input('Для продолжения работы нажмите клавишу "Enter"...')
 
 
-def input_menu_command(menu, caption_menu='') -> dict:
+def input_menu_command(menu):
     """
     Функция ввода команды меню из словаря menu
     :param menu: список пунктов меню с командами
-    :param caption_menu: заголовок меню
     :return: словарь: введенная команда и соответсвующие значения
     """
-    print(caption_menu)
-    for key_command, name_command in menu.items():
+    # Вывод заголовка меню
+    print(menu[0])
+    # Вывод команд меню
+    for key_command, name_command in menu[1].items():
         print(f'\t{key_command} – {name_command["menu_title"]}')
 
     print('Введите команду:', end=' ')
     code_command = str(input().strip()).lower()
-    status_command = menu.get(code_command, {'error_command': code_command})
-    return status_command
+
+    # Проверка на существование команды меню
+    status_command = menu[1].get(code_command, {'error_command': code_command})
+
+    # Проверка команды подменю - СУЩЕСТВУЕТ ЛИ ВЫБРАННАЯ КОМАНДА
+    if status_command.get('error_command', False):
+        # Вывод ошибки
+        invalid_command(status_command['error_command'])
+        is_error = True
+    else:
+        is_error = False
+    return status_command, is_error
 
 
 def main(cmd):
@@ -76,7 +86,6 @@ def main(cmd):
     Функция основного меню и подменю, с реагированием на команды поданного списка cmd
     :param cmd: команды меню и необходимые значения для реагирования к каждой команде
     """
-
     is_exit = False
     while not is_exit:
         # Параметры текущей, выбранной команды:
@@ -90,74 +99,71 @@ def main(cmd):
         init_screen()
 
         # Вызов ввода команды меню
-        status_command['destination'] = input_menu_command(cmd[0], 'Выберите ресурс назначения копирования фотографий:')
+        status_command['destination'], is_error = input_menu_command(cmd[0])
 
-        # Проверка команды подменю - СУЩЕСТВУЕТ ЛИ ВЫБРАННАЯ КОМАНДА
-        if status_command['destination'].get('error_command'):
-            invalid_command(status_command['destination']['error_command'])
+        # Проверка на ошибку команды меню
+        if is_error:
             continue
-
         # Проверка команды подменю - выбран ли пункт ВЫХОД
-        if status_command['destination']['menu_cmd'] == 0:
-            is_exit = True
-        else:
-            is_menu_out = False
-            while not is_menu_out:
-                status_command['resource'] = {}
+        elif status_command['destination']['menu_cmd'] == 0:
+            break
 
-                # Очистка экрана, вывод навзания приложения
-                init_screen()
+        # Второе подменю
+        while True:
+            # Очистка экрана, вывод навзания приложения
+            init_screen()
 
-                print(f'Хранилище импортируемых фотографий: {status_command["destination"]["name"]} - '
-                      f'{status_command["destination"]["url"]}.')
+            print(f'Хранилище импортируемых фотографий: {status_command["destination"]["name"]} - '
+                  f'{status_command["destination"]["url"]}.')
 
-                # Вызов ввода команды меню
-                status_command['resource'] = input_menu_command(cmd[1], 'Выберите источник копирования фотографий:')
+            # Вызов ввода команды меню
+            status_command['resource'], is_error = input_menu_command(cmd[1])
 
-                # Проверка команды подменю - СУЩЕСТВУЕТ ЛИ ВЫБРАННАЯ КОМАНДА
-                if status_command['resource'].get('error_command'):
-                    invalid_command(status_command['resource']['error_command'])
+            # Проверка на ошибку команды меню
+            if is_error:
+                continue
+            # Проверка команды подменю - выбран ли пункт ВЫХОД
+            elif status_command['resource']['menu_cmd'] == 0:
+                is_exit = True
+                break
+            # Проверка команды подменю - выбран ли пункт ВОЗВРАТ В ГЛАВНОЕ МЕНЮ
+            elif status_command['resource']['menu_cmd'] == 9:
+                break
+
+            # Ввод необходимых данных ID-пользователя и ключа доступа к ресурсу
+            if not input_data_for_read(status_command["resource"]):
+                continue
+
+            # Проверка на наличие и доступность списка фотографий
+            if photos_get(status_command['resource']):
+
+                # Ввод необходимых данных: ключа доступа к ресурсу на который загружать фотографии
+                if not input_data_for_write(status_command):
                     continue
 
-                # Проверка команды подменю - выбран ли пункт ВЫХОД
-                if status_command['resource']['menu_cmd'] == 0:
-                    is_exit = True
-                    is_menu_out = True
-                # Проверка команды подменю - выбран ли пункт ВОЗВРАТ В ГЛАВНОЕ МЕНЮ
-                elif status_command['resource']['menu_cmd'] == 9:
-                    is_menu_out = True
-                else:
-                    # Ввод необходимых данных ID-пользователя и ключа доступа к ресурсу
-                    if input_data_for_read(status_command["resource"]):
+                # Проверка куда будут передоваться файлы, если на Google drive,
+                # то через отдельное скачивание на локальный ресурс
+                if status_command['destination']['menu_cmd'] == 2:
+                    download_files(status_command['destination'])
 
-                        files_to_download = photos_get(status_command['resource'])
-                        if len(files_to_download) > 0:
-                            print('\nСписок доступных фотографий для скачивания:')
-                            print_list_files(files_to_download, ['file_name', 'height', 'width', 'url'])
+                # Передача файлов на ресурс
+                upload_files(status_command['destination'])
 
-                            # Ввод необходимых данных: ключа доступа к ресурсу на который загружать фотографии
-                            if input_data_for_write(status_command):
-                                # Проверка куда будут передоваться файлы, если на Яндекс диск, то напрямую
-                                if status_command['destination']['menu_cmd'] == 1:
-                                    upload_files(status_command)
-                                # если на Google drive, то через отдельное скачивание на локальный ресурс
-                                if status_command['destination']['menu_cmd'] == 2:
-                                    download_files(status_command)
-                                    upload_files(status_command)
+                # Вывод результатов на экран
+                print('3. ВЫГРУЗКА ДАННЫХ НА СЕРВЕР.')
+                print(f'Результаты загрузки файлов на ресурс '
+                      f'{status_command["destination"]["name"]}:')
+                print_list_files(status_command['destination']['files'],
+                                 ['file_name', 'height', 'width', 'log_upload'])
 
-                                # Сохранение данных в журнал
-                                if save_file_json(status_command['destination']['files'], file_log_name):
-                                    print('3. ВЫГРУЗКА ДАННЫХ НА СЕРВЕР.')
-                                    print(f'Результаты загрузки файлов на ресурс '
-                                          f'{status_command["destination"]["name"]}:')
-                                    print_list_files(status_command['destination']['files'],
-                                                     ['file_name', 'height', 'width', 'log_upload'])
-                                    print(f'Список обработанных файлов сохранен в json-файл: {file_log_name}.')
-                                input('\nДля продолжения работы нажмите клавишу "Enter"...')
-                        else:
-                            print('\nНет доступных фотографий для скачивания!\n')
-                            input('Для продолжения работы нажмите клавишу "Enter"...')
-    return "До встречи!"
+                # Сохранение данных в журнал
+                if save_file_json(status_command['destination']['files'], file_log_name):
+                    print(f'Список обработанных файлов сохранен в json-файл: {file_log_name}.')
+            else:
+                print('\nНет доступных фотографий для скачивания!\n')
+
+            input('Для продолжения работы нажмите клавишу "Enter"...')
+    return print('\nДо встречи!')
 
 
 def download_files(data):
@@ -178,25 +184,19 @@ def upload_files(data):
     :param data:
     """
     print(f'\nОжидайте, идет передача файлов на конечный сетевой ресурс '
-          f'{data["destination"]["name"]}: {data["destination"]["url"]}...')
+          f'{data["name"]}: {data["url"]}...')
     suffix = '%(percent)d%%.'
-    bar = IncrementalBar('Процесс - ', color='green', suffix=suffix, max=len(data['destination']['files']) + 2)
-
-    # Проверка на какой ресурся загружать файлы 1 - Яндекс диск, 2 - Google drive
-    # if data['destination']['menu_cmd'] == 1:
-    #     client = YaDiskUser(token)
-    # elif data['destination']['menu_cmd'] == 2:
-    #     client = 'google'
-
+    bar = IncrementalBar('Процесс - ', color='green', suffix=suffix, max=len(data['files']) + 2)
     bar.suffix = '{sfx} Соединение с сервером...'.format(sfx=suffix)
     bar.next()
 
-    client = YaDiskUser(data["destination"]["token"])
+    #  Создание клиента API для импорта фотографий
+    client = getattr(api_services, data["menu_api"])(data['url'], data['token'])
 
     # Загрузка файлов
-    for f in data['destination']['files']:
+    for f in data['files']:
         bar.suffix = '{sfx} Передается файл: {f_name} ...'.format(f_name=f["file_name"], sfx=suffix)
-        status_upload = client.upload_url_to_disk(data['destination']['path_disk'] + '/' + f['file_name'], f['url'])
+        status_upload = client.upload_url_to_disk(data['path_disk'] + '/' + f['file_name'], f['url'])
         if status_upload['code'] == 202:
             f['log_upload'] = 'Успешно загружен'
         else:
@@ -237,12 +237,17 @@ def input_data_for_read(resource):
     """
     # Очистка экрана, вывод навзания приложения
     init_screen()
+
     print(f'1. ВХОДНЫЕ ДАННЫЕ.\nРесурс импорта - {resource["name"]}\n')
     print('2. СВЕДЕНИЯ О ФАЙЛАХ НА СЕРВЕРЕ.')
     print(f'Источник импорта фотографий: {resource["name"]} - {resource["url"]}.')
+
+    # Ввод ID пользовател
     resource["id"] = input('Введите ID пользователя (0 - для отмены): ').strip()
     if resource["id"] == '0':
         return False
+
+    # Ввод ТОКЕНА
     resource["token"] = getpass(prompt='Введите TOKEN пользователя (0 - для отмены): ', mask='*')
     if resource["token"].strip() == '0':
         return False
@@ -292,7 +297,7 @@ def input_data_for_write(data):
                 data['destination']['files'] = [data['resource']['files'][f] for f in range(abs(files_for_download[0]))]
             # иначе выбирается список файлов который ввел пользователь
             else:
-                data['destination']['files'] = [data['resource']['files'][f-1] for f in files_for_download]
+                data['destination']['files'] = [data['resource']['files'][f - 1] for f in files_for_download]
             return True
         # Проверка на возможные ошибки при вводе списка файлов (например номер несуществующего файла)
         except Exception as Ex:
@@ -300,34 +305,35 @@ def input_data_for_write(data):
             return False
 
 
-def photos_get(resource) -> list:
+def photos_get(resource, output=True) -> bool:
     """
     Функция считывания списка доступных файлов для скачивания с сетевых ресурсов
     :param resource: входные параметры выбранного сетевого ресурса
+    :param output: параметр выводить на экран список файлов или ошибку - или нет
     :return: список доступных файлов для скачивания c заданного сетевого ресурса,
     если возникла ошибка - печать ошибки и возращает пустой список
     """
+    #  Создание клиента API для экспорта фотографий
+    client = getattr(api_services, resource["menu_api"])(resource['url'], resource['token'], resource['version'])
 
-    #  Проверка выбранного сервиса из пунктов меню 1 - Вконтакте
-    if resource["menu_cmd"] == 1:
-        client = api_services.VKUser(resource['url'], resource['token'], resource['version'])
-    #  Проверка выбранного сервиса из пунктов меню 2 - Одноклассники
-    elif resource["menu_cmd"] == 2:
-        client = api_services.OKUser(resource['url'], resource['token'])
-    #  Проверка выбранного сервиса из пунктов меню 3 - Инстаграм
-    elif resource["menu_cmd"] == 3:
-        client = api_services.InstagramUser(resource['url'], resource['token'], resource['version'])
-    else:
-        return []
+    # Вывод информации о клиенте API
+    if output:
+        print(f'\n{client}')
 
-    print(client)
+    # Получения списка доступных фотографий
     resource['files'] = client.get_photos(resource['id'])
+
+    # Проверка на ошибки при получении списка файлов
     if isinstance(resource['files'][0], dict) and resource['files'][0].get('error_code', False):
-        print(f'Ошибка при чтении списка фотографий!\n '
-              f'Код ошибки: {resource["files"][0]["error_code"]} - {resource["files"][0]["error_msg"]}.')
-        return []
+        if output:
+            print(f'Ошибка при чтении списка фотографий!\n '
+                  f'Код ошибки: {resource["files"][0]["error_code"]} - {resource["files"][0]["error_msg"]}.')
+        return False
     else:
-        return resource['files']
+        if output:
+            print('\nСписок доступных фотографий для скачивания:')
+            print_list_files(resource['files'], ['file_name', 'height', 'width', 'url'])
+        return True
 
 
 def print_list_files(list_files, columns):
