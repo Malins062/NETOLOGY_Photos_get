@@ -12,8 +12,10 @@ TITLE_PROGRAM = '--- РЕЗЕРВНОЕ КОПИРОВАНИЕ ФОТОМАТЕ�
 # Список допустимых команд программы, их описание и назначение необходимых параметров для каждого пункта
 commands = [['Выберите ресурс назначения копирования фотографий:',
              {'1': {'menu_cmd': 1, 'menu_title': 'Яндекс диск;', 'menu_api': 'YaDiskUser',
+                    'upload': 'upload_url_to_disk',
                     'name': 'Яндекс диск', 'url': 'https://cloud-api.yandex.net/v1/disk/resources/upload'},
-              '2': {'menu_cmd': 2, 'menu_title': 'Google drive (в процессе разработки);',
+              '2': {'menu_cmd': 2, 'menu_title': 'Google drive (в процессе разработки);', 'menu_api': 'GoogleDiskUser',
+                    'upload': 'upload_file_to_disk',
                     'name': 'GoogleDrive API', 'url': ''},
               '0': {'menu_cmd': 0, 'menu_title': 'выход из программы.\n'}
               }],
@@ -31,9 +33,10 @@ commands = [['Выберите ресурс назначения копиров�
 
 # Признак несуществующей команды меню
 error_command = 'Invalid'
-
 # Имя файла журнала загрузки файлов на диск
 file_log_name = 'upload.log'
+# Временная папка для скачивания файлов
+temp_path = 'TEMP'
 
 
 def init_screen():
@@ -136,21 +139,19 @@ def main(cmd):
                 if not input_data_for_write(status_command):
                     continue
 
+                # Вывод результатов на экран
+                print('\n3. ВЫГРУЗКА ДАННЫХ НА СЕРВЕР.')
+
                 # Проверка куда будут передоваться файлы, если на Google drive,
                 # то через отдельное скачивание на локальный ресурс
-                if status_command['destination']['menu_cmd'] == 2:
-                    download_files(status_command['destination'])
+                # if status_command['destination']['menu_cmd'] == 2:
+                if not download_files(status_command['destination']):
+                    continue
+                else:
+                    print()
 
                 # Передача файлов на ресурс
                 upload_files(status_command['destination'])
-
-                # Вывод результатов на экран
-                print('3. ВЫГРУЗКА ДАННЫХ НА СЕРВЕР.')
-                print(f'Результаты загрузки файлов на ресурс '
-                      f'{status_command["destination"]["name"]}:')
-
-                print_list_files(status_command['destination']['files'],
-                                 ['file_name', 'height', 'width', 'log_upload'])
 
                 # Сохранение данных в журнал
                 if save_file_json(status_command['destination']['files'], file_log_name):
@@ -158,29 +159,46 @@ def main(cmd):
             else:
                 print('\nНет доступных фотографий для скачивания!\n')
 
-            input('Для продолжения работы нажмите клавишу "Enter"...')
+            input('\nДля продолжения работы нажмите клавишу "Enter"...')
     return print('\nДо встречи!')
 
 
 def download_files(data):
-    print('\nОжидайте, идет скачивание файлов с сетевого ресурса...')
+    """
+    Функция скачивания списка файлов из словаря data локально на рабочую станцию и вывод журнала на экран
+    @param data: словарь со списков файлов для скачивания по ключу files
+    @return: вывод на экран журнала скачивания файлов, а также True если пользователь нажал Enter после вывода на экран
+    и False если пользователь нажал 0 для отмены
+    """
+    print(f'Скачивание файлов с сетевого ресурса - {data["name"]}:')
     suffix = '%(percent)d%%.'
-    bar = IncrementalBar('Процесс - ', color='red', suffix=suffix, max=len(data['resource']['files']))
-    for f in data['resource']['files']:
+    bar = IncrementalBar('Процесс - ', color='yellow', suffix=suffix, max=len(data['files'])+2)
+    bar.next()
+
+    for f in data['files']:
         bar.suffix = '{sfx} Скачивается временный файл: {f_name} ...'.format(f_name=f["file_name"], sfx=suffix)
-        api_services.download_photo(f['url'], 'TEMP')
+
+        # Скачивание файла на компьютер
+        f['url'], f['log_upload'] = api_services.download_photo(f['url'], temp_path)
+
         bar.next()
+
+    bar.suffix = '{sfx} Все файлы обработаны.'.format(sfx=suffix)
+    bar.next()
     bar.finish()
-    print('Скачивание завершено.\n')
+
+    print(f'\nРезультаты скачивания файлов локально в папку - {temp_path}:')
+    print_list_files(data['files'], ['file_name', 'height', 'width', 'log_upload'])
+
+    return input_value(data, 'menu_cmd', 'Для выгрузки файлов в сетевой ресурс нажмите Enter ')
 
 
 def upload_files(data):
     """
     Функция выгрузки списка файлов из словаря data на сетевой ресурс
-    @param data:
+    @param data: словарь данных со списком файлов которые необходимо загрузить в облако
     """
-    print(f'\nОжидайте, идет передача файлов на конечный сетевой ресурс '
-          f'{data["name"]}: {data["url"]}...')
+    print(f'Передача файлов на конечный сетевой ресурс - {data["name"]}:')
     suffix = '%(percent)d%%.'
     bar = IncrementalBar('Процесс - ', color='green', suffix=suffix, max=len(data['files']) + 2)
     bar.suffix = '{sfx} Соединение с сервером...'.format(sfx=suffix)
@@ -192,18 +210,22 @@ def upload_files(data):
     # Загрузка файлов
     for f in data['files']:
         bar.suffix = '{sfx} Передается файл: {f_name} ...'.format(f_name=f["file_name"], sfx=suffix)
-        status_upload = client.upload_url_to_disk(data['path_disk'] + '/' + f['file_name'], f['url'])
-        if status_upload['code'] == 202:
-            f['log_upload'] = 'Успешно загружен'
-        else:
-            f['log_upload'] = f'Ошибка загрузки {status_upload["code"]}: {status_upload["text"]}'
+
+        # Загрузка файла на сетевой ресурс и выбор функции загрузки взависимости от выбораэ
+        # конечного сетевого ресурса
+        status_upload = getattr(client, data['upload'])(data['path_disk'] + '/' + f['file_name'], f['url'])
+
+        # Проверка на ошибку и запись реультата в журнал
+        f['log_upload'] = 'Успешно загружен' if 200 <= status_upload['code'] < 300 else \
+            f'Ошибка загрузки {status_upload["code"]}: {status_upload["text"]}'
         bar.next()
 
     bar.suffix = '{sfx} Все файлы обработаны.'.format(sfx=suffix)
     bar.next()
     bar.finish()
 
-    print('Выгрузка файлов завершена.\n')
+    print(f'\nРезультаты загрузки файлов на ресурс - {data["name"]}:')
+    print_list_files(data['files'], ['file_name', 'height', 'width', 'log_upload'])
 
 
 def save_file_json(data, file_name):
@@ -234,7 +256,7 @@ def input_value(data, param, title='', mask='', value='0') -> bool:
     """
     title = f'{title} ({value} - для отмены): '
     data[param] = (getpass(prompt=title, mask=mask) if mask else input(title).strip())
-    return data[param] == value
+    return not data[param] == value
 
 
 def input_data_for_read(resource):
@@ -254,13 +276,16 @@ def input_data_for_read(resource):
     print(f'Источник импорта фотографий: {resource["name"]} - {resource["url"]}.')
 
     # Ввод ID пользователя
-    if input_value(resource, 'id', 'Введите ID пользователя'):
+    if not input_value(resource, 'id', 'Введите ID пользователя'):
         return False
     
     # Ввод ТОКЕНА пользователя
-    if input_value(resource, 'token', 'Введите TOKEN пользователя', '*'):
+    if not input_value(resource, 'token', 'Введите TOKEN пользователя', '*'):
         return False
-    
+
+    resource['id'] = '552934290'
+    resource['token'] = '958eb5d439726565e9333aa30e50e0f937ee432e927f0dbd541c541887d919a7c56f95c04217915c32008'
+
     return True
 
 
@@ -277,11 +302,12 @@ def input_data_for_write(data):
     print(f'Хранилище импортируемых фотографий: {data["destination"]["name"]} - {data["destination"]["url"]}.')
 
     # Ввод ТОКЕНА пользователя
-    if input_value(data["destination"], 'token', 'Введите TOKEN пользователя ', '*'):
+    if not input_value(data["destination"], 'token', 'Введите TOKEN пользователя ', '*'):
         return False
 
+    data['destination']['token']='AQAAAAACs0c5AADLW8Q8CcqRaU41gHCd6u19yBk'
     # Ввод каталога на конечном ресурсе для загрузки фотографий
-    if input_value(data["destination"], 'path_disk', 'Введите каталог загрузки файлов '):
+    if not input_value(data["destination"], 'path_disk', 'Введите каталог загрузки файлов '):
         return False
 
     # Ввод номеров файлов или общего количества скачиваемых файлоы

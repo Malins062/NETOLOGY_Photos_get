@@ -19,7 +19,7 @@ class ClientApi:
                f'Параметры get-запроса:\n' \
                f'\t* версия протокола - {version};\n' \
                f'\t* ключ доступа - {self.token[:5]}...' \
-               f'{self.token[len(self.token) - 5:]}\n'
+               f'{self.token[len(self.token) - 5:]}'
 
 
 def _verify_error(res) -> dict:
@@ -277,12 +277,23 @@ class YaDiskUser(ClientApi):
         }
 
     def _get_upload_link(self, disk_file_path):
+        """
+        Функция получения ссылки на загрузку файла из локальной директории
+        @param disk_file_path: локальный путь файла
+        @return: ссылка на загрузку
+        """
         headers = self.get_headers()
         params = {"path": disk_file_path, "overwrite": "true"}
         response = requests.get(self.url, headers=headers, params=params)
         return response.json()
 
     def upload_file_to_disk(self, disk_file_path, filename):
+        """
+        Функция загрузки локального файла на сетевой ресурс
+        @param disk_file_path: локальная папка файл
+        @param filename: имя файла
+        @return: результат загрузки файла
+        """
         href = self._get_upload_link(disk_file_path=disk_file_path).get("href", "")
         response = requests.put(href, data=open(filename, 'rb'))
         return {'code': response.status_code, 'text': response.text}
@@ -301,17 +312,28 @@ class YaDiskUser(ClientApi):
 
 
 def download_photo(url, disk_file_path):
-    # photo_params = {"path": disk_file_path, "overwrite": "true"}
-    # Запрос к ресурсу
-    # res = requests.get(url, params={**self.params, **photo_params})
-
+    """
+    Функция скачивания файла по интернет ссылке url в папку disk_file_path
+    @param url: url скачиваемого файла
+    @param disk_file_path: локальная папка, куда будет скачан файл
+    @return: полное имя файла, результат скачивания
+    """
+    # Скачивание файла
     res = requests.get(url, stream=True, allow_redirects=True)
-    realurl = res.url.split('/')[-1].split('?')[0]
 
-    filepath = os.path.join(disk_file_path, realurl)
+    # Вычленение навзания файла
+    url = res.url.split('/')[-1].split('?')[0]
 
-    with open(filepath, 'wb') as image:
-        if res.ok:
-            for content in res.iter_content(1024):
-                if content:
-                    image.write(content)
+    # Вычисление полного пути
+    filepath = os.path.join(disk_file_path, url)
+
+    # Сохраение файла в локальную папку disk_file_path
+    try:
+        with open(filepath, 'wb') as image:
+            if res.ok:
+                for content in res.iter_content(1024):
+                    if content:
+                        image.write(content)
+        return filepath, f'Загружен - {filepath}'
+    except Exception as Ex:
+        return filepath, f'Ошибка скачивания {Ex}'
