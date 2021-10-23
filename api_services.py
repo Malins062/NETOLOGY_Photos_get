@@ -26,8 +26,8 @@ def _verify_error(res) -> dict:
     """
     Функция перевода res в формат json.
     Проверка на ошибки в res и возврат словаря ошибок или полученный ответ res.json()
-    :param res: ответ от сервера полученный get запросом
-    :return: res.json() или словарь с ошибками
+    @param res: ответ от сервера полученный get запросом
+    @return: res.json() или словарь с ошибками
     """
     try:
         res.raise_for_status()
@@ -68,9 +68,9 @@ class VKUser(ClientApi):
     def get_photos(self, owner_id=None, album_id='profile') -> list:
         """
         Метод создания запроса к странице ВКонтакте для получения списка доступных фотографий
-        :param owner_id: id пользователя страницы ВКонтакте
-        :param album_id: profile, saved или
-        :return: список найденных фотографий или ошибку
+        @param owner_id: id пользователя страницы ВКонтакте
+        @param album_id: profile, saved или
+        @return: список найденных фотографий или ошибку
         """
         # URL запроса
         photos_url = self.url + 'photos.get'
@@ -122,21 +122,17 @@ class OKUser(ClientApi):
     """
     Класс для работы с API Одноклассники
     """
-
-    # Параметры приложения API
-    application_id = 512000933212
-    application_key = 'CNFODDKGDIHBABABA'
-    access_token = 'tkn1sj0BQ94qGFESvnA8kwIa7QQTy2whiRrCVzoNi9EMx62anC9vAXjPXCNIYgi21W1Zd'
-
     def __init__(self, url, token, version=''):
         super().__init__(url, token, version)
         self.session_secret_key = token
+        self.application_key = 'CNFODDKGDIHBABABA'
+        self.access_token = 'tkn1sj0BQ94qGFESvnA8kwIa7QQTy2whiRrCVzoNi9EMx62anC9vAXjPXCNIYgi21W1Zd'
 
     def get_photos(self, owner_id=None) -> list:
         """
         Метод создания запроса к странице Одноклассники для получения списка доступных фотографий
-        :param owner_id: id пользователя страницы Одноклассники
-        :return: список найденных фотографий или ошибку
+        @param owner_id: id пользователя страницы Одноклассники
+        @return: список найденных фотографий или ошибку
         """
         # Параметры запроса
         photos_params = {
@@ -212,8 +208,8 @@ class InstagramUser(ClientApi):
     def get_photos(self, owner_id=None) -> list:
         """
         Метод создания запроса к странице Инстаграмм для получения списка доступных фотографий
-        :param owner_id: id пользователя страницы Instagram
-        :return: список найденных фотографий или ошибку
+        @param owner_id: id пользователя страницы Instagram
+        @return: список найденных фотографий или ошибку
         """
 
         # Выборка списка ID доступных фотографий
@@ -253,7 +249,9 @@ class InstagramUser(ClientApi):
                     # Необходимые значения скачиваемого файла для выходного json-файла
                     file_params = {'type': res_photo.get('media_type', 'No_data'),
                                    'url': res_photo.get('media_url', 'No_data'),
-                                   'file_name': str(res_photo.get('id', 'No_data')) + '.jpg'
+                                   'file_name': str(res_photo.get('id', 'No_data')) + '.jpg',
+                                   'height': '-',
+                                   'width': '-'
                                    }
                 # Добавление фото в результирующий список если данные есть
                 if file_params:
@@ -271,7 +269,7 @@ class YaDiskUser(ClientApi):
     def get_headers(self):
         """
         Методо инициализации заголовка для запорсов
-        :return: словарь заголовков
+        @return: словарь заголовков
         """
         return {
             'Content-Type': 'application/json',
@@ -292,9 +290,9 @@ class YaDiskUser(ClientApi):
     def upload_url_to_disk(self, disk_path, url):
         """
         Метод загрузки файла из интернета на Яндекс диск методом post
-        :param disk_path: путь к доступной папке на Яндекс диске
-        :param url: ссылка файла в сети интернет
-        :return: словарь с кодом ответа и текстом {'code': '', text: ''}
+        @param disk_path: путь к доступной папке на Яндекс диске
+        @param url: ссылка файла в сети интернет
+        @return: словарь с кодом ответа и текстом {'code': '', text: ''}
         """
         headers = self.get_headers()
         params = {"path": disk_path, "url": url}

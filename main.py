@@ -47,17 +47,19 @@ def init_screen():
 def invalid_command(err_cmd):
     """
     Вывод ошибки на экран, при вводе неверной команды
-    :return:
+    @return:
     """
     print(f'\n*** ОШИБКА! Выполнение команды "{err_cmd}" не допустимо! ***\n')
     input('Для продолжения работы нажмите клавишу "Enter"...')
 
 
-def input_menu_command(menu):
+def input_menu_command(menu, command: dict, appointment):
     """
     Функция ввода команды меню из словаря menu
-    :param menu: список пунктов меню с командами
-    :return: словарь: введенная команда и соответсвующие значения
+    @param menu: список пунктов меню с командами
+    @param command: введенная команда и соответсвующие значения или сообщение об обибке
+    @param appointment: имя параметра словая command, куда будут сохранятся реузльтаты
+    @return: True если ошибочная команда меню, иначе False
     """
     # Вывод заголовка меню
     print(menu[0])
@@ -69,22 +71,21 @@ def input_menu_command(menu):
     code_command = str(input().strip()).lower()
 
     # Проверка на существование команды меню
-    status_command = menu[1].get(code_command, {'error_command': code_command})
+    command[appointment] = menu[1].get(code_command, {'error_command': code_command})
 
     # Проверка команды подменю - СУЩЕСТВУЕТ ЛИ ВЫБРАННАЯ КОМАНДА
-    if status_command.get('error_command', False):
+    if command[appointment].get('error_command', False):
         # Вывод ошибки
-        invalid_command(status_command['error_command'])
-        is_error = True
+        invalid_command(command[appointment]['error_command'])
+        return True
     else:
-        is_error = False
-    return status_command, is_error
+        return False
 
 
 def main(cmd):
     """
     Функция основного меню и подменю, с реагированием на команды поданного списка cmd
-    :param cmd: команды меню и необходимые значения для реагирования к каждой команде
+    @param cmd: команды меню и необходимые значения для реагирования к каждой команде
     """
     is_exit = False
     while not is_exit:
@@ -98,11 +99,8 @@ def main(cmd):
         # Очистка экрана, вывод навзания приложения
         init_screen()
 
-        # Вызов ввода команды меню
-        status_command['destination'], is_error = input_menu_command(cmd[0])
-
-        # Проверка на ошибку команды меню
-        if is_error:
+        # Вызов ввода команды меню и проверка на ошибку команды меню
+        if input_menu_command(cmd[0], status_command, 'destination'):
             continue
         # Проверка команды подменю - выбран ли пункт ВЫХОД
         elif status_command['destination']['menu_cmd'] == 0:
@@ -116,11 +114,8 @@ def main(cmd):
             print(f'Хранилище импортируемых фотографий: {status_command["destination"]["name"]} - '
                   f'{status_command["destination"]["url"]}.')
 
-            # Вызов ввода команды меню
-            status_command['resource'], is_error = input_menu_command(cmd[1])
-
-            # Проверка на ошибку команды меню
-            if is_error:
+            # Вызов ввода команды подменю и проверка на ошибку команды подменю
+            if input_menu_command(cmd[1], status_command, 'resource'):
                 continue
             # Проверка команды подменю - выбран ли пункт ВЫХОД
             elif status_command['resource']['menu_cmd'] == 0:
@@ -153,6 +148,7 @@ def main(cmd):
                 print('3. ВЫГРУЗКА ДАННЫХ НА СЕРВЕР.')
                 print(f'Результаты загрузки файлов на ресурс '
                       f'{status_command["destination"]["name"]}:')
+
                 print_list_files(status_command['destination']['files'],
                                  ['file_name', 'height', 'width', 'log_upload'])
 
@@ -181,7 +177,7 @@ def download_files(data):
 def upload_files(data):
     """
     Функция выгрузки списка файлов из словаря data на сетевой ресурс
-    :param data:
+    @param data:
     """
     print(f'\nОжидайте, идет передача файлов на конечный сетевой ресурс '
           f'{data["name"]}: {data["url"]}...')
@@ -213,9 +209,9 @@ def upload_files(data):
 def save_file_json(data, file_name):
     """
     Функция сохраения данных json data в в файл
-    :param data: словарь который необходимо сохранить в файл
-    :param file_name: имя сохраняемого файла
-    :return: True - если сохранение файла успешно, иначе вывод текста, возникшего Exception
+    @param data: словарь который необходимо сохранить в файл
+    @param file_name: имя сохраняемого файла
+    @return: True - если сохранение файла успешно, иначе вывод текста, возникшего Exception
     """
     try:
         with open(file_name, 'w', encoding='UTF-8') as f:
@@ -226,13 +222,28 @@ def save_file_json(data, file_name):
         return Ex
 
 
+def input_value(data, param, title='', mask='', value='0') -> bool:
+    """
+    Функция пользоватлеьского ввода значения и помещения его в словарь data с ключом param
+    @param data: словарь данных
+    @param param: ключ словарь для данных
+    @param title: заголовок ввода
+    @param mask: символ ввода информации для скрытия данных, если параметр не задан то простой ввод
+    @param value: значение с которым сравнивается значение вводимое пользователем
+    @return: True если value совпадает с введенным значением пользователя, иначе False
+    """
+    title = f'{title} ({value} - для отмены): '
+    data[param] = (getpass(prompt=title, mask=mask) if mask else input(title).strip())
+    return data[param] == value
+
+
 def input_data_for_read(resource):
     """
     Функция ввода дополнительных необходмых параметров чтения с сетевого ресурса:
      1) ID пользователя, от которого будет производится импорт фотографий;
      2) TOKEN пользователя, кому будут сохраняться фотографии
-    :param resource: параметры источника импорта фотографий (name, url, id)
-    :return: True - если пользователь ввел все необходимые данные + измененный словарь resource
+    @param resource: параметры источника импорта фотографий (name, url, id)
+    @return: True - если пользователь ввел все необходимые данные + измененный словарь resource
             False - если пользователь ввел 0 - отмену (возврат в предыдущее меню)
     """
     # Очистка экрана, вывод навзания приложения
@@ -242,17 +253,15 @@ def input_data_for_read(resource):
     print('2. СВЕДЕНИЯ О ФАЙЛАХ НА СЕРВЕРЕ.')
     print(f'Источник импорта фотографий: {resource["name"]} - {resource["url"]}.')
 
-    # Ввод ID пользовател
-    resource["id"] = input('Введите ID пользователя (0 - для отмены): ').strip()
-    if resource["id"] == '0':
+    # Ввод ID пользователя
+    if input_value(resource, 'id', 'Введите ID пользователя'):
         return False
-
-    # Ввод ТОКЕНА
-    resource["token"] = getpass(prompt='Введите TOKEN пользователя (0 - для отмены): ', mask='*')
-    if resource["token"].strip() == '0':
+    
+    # Ввод ТОКЕНА пользователя
+    if input_value(resource, 'token', 'Введите TOKEN пользователя', '*'):
         return False
-    else:
-        return True
+    
+    return True
 
 
 def input_data_for_write(data):
@@ -261,16 +270,18 @@ def input_data_for_write(data):
      1) ID пользователя, от которого будет производится импорт фотографий;
      2) TOKEN пользователя, кому будут сохраняться фотографии
      3) каталог на сетевом ресурсе, куда будут выгружаться фотографии
-    :param data: параметры хранилища фотографий раздел - destination (name, url, token, path_disk)
-    :return: True - если пользователь ввел все необходимые данные + измененный словарь data
+    @param data: параметры хранилища фотографий раздел - destination (name, url, token, path_disk)
+    @return: True - если пользователь ввел все необходимые данные + измененный словарь data
              False - если пользователь ввел 0 - отмену (возврат в предыдущее меню)
     """
     print(f'Хранилище импортируемых фотографий: {data["destination"]["name"]} - {data["destination"]["url"]}.')
-    data["destination"]["token"] = getpass(prompt='Введите TOKEN пользователя (0 - для отмены): ', mask='*')
-    if data["destination"]["token"].strip() == '0':
+
+    # Ввод ТОКЕНА пользователя
+    if input_value(data["destination"], 'token', 'Введите TOKEN пользователя ', '*'):
         return False
-    data["destination"]["path_disk"] = input('Введите каталог загрузки файлов (0 - для отмены): ').strip()
-    if data["destination"]["path_disk"].strip() == '0':
+
+    # Ввод каталога на конечном ресурсе для загрузки фотографий
+    if input_value(data["destination"], 'path_disk', 'Введите каталог загрузки файлов '):
         return False
 
     # Ввод номеров файлов или общего количества скачиваемых файлоы
@@ -308,9 +319,9 @@ def input_data_for_write(data):
 def photos_get(resource, output=True) -> bool:
     """
     Функция считывания списка доступных файлов для скачивания с сетевых ресурсов
-    :param resource: входные параметры выбранного сетевого ресурса
-    :param output: параметр выводить на экран список файлов или ошибку - или нет
-    :return: список доступных файлов для скачивания c заданного сетевого ресурса,
+    @param resource: входные параметры выбранного сетевого ресурса
+    @param output: параметр выводить на экран список файлов или ошибку - или нет
+    @return: список доступных файлов для скачивания c заданного сетевого ресурса,
     если возникла ошибка - печать ошибки и возращает пустой список
     """
     #  Создание клиента API для экспорта фотографий
@@ -339,9 +350,9 @@ def photos_get(resource, output=True) -> bool:
 def print_list_files(list_files, columns):
     """
     Функция вывода списка list_files на экран в табличном формате с помощью библиотеки Pandas
-    :param list_files: список файлов
-    :param columns: список колонок которые необходимо выводить на экран
-    :return: вывод данных в виде таблицы
+    @param list_files: список файлов
+    @param columns: список колонок которые необходимо выводить на экран
+    @return: вывод данных в виде таблицы
     """
     frame = pd.DataFrame(list_files, columns=columns)
     # frame['url'] = frame['url'].str.slice(0, 20)
