@@ -16,7 +16,7 @@ commands = [['Выберите ресурс назначения копиров�
                     'name': 'Яндекс диск', 'url': 'https://cloud-api.yandex.net/v1/disk/resources/upload'},
               '2': {'menu_cmd': 2, 'menu_title': 'Google drive (в процессе разработки);', 'menu_api': 'GoogleDiskUser',
                     'upload': 'upload_file_to_disk',
-                    'name': 'GoogleDrive API', 'url': ''},
+                    'name': 'GoogleDrive API', 'url': 'https://www.googleapis.com/auth/drive'},
               '0': {'menu_cmd': 0, 'menu_title': 'выход из программы.\n'}
               }],
             ['Выберите источник копирования фотографий:',

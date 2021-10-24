@@ -2,6 +2,8 @@ import requests
 import hashlib
 import os
 
+from google.oauth2 import service_account
+
 
 class ClientApi:
     """
@@ -308,6 +310,48 @@ class YaDiskUser(ClientApi):
         headers = self.get_headers()
         params = {"path": disk_path, "url": url}
         response = requests.post(url=self.url, headers=headers, params=params)
+        return {'code': response.status_code, 'text': response.text}
+
+
+class GoogleDriveUser(ClientApi):
+    """
+    Класс для работы с сервисом Google Drive
+    """
+    def __init__(self, url, token, version=''):
+        super().__init__(url, token, version)
+        self.key_id = 'e80d3bac3aced3a06184a9df460c76b3ceee2a20'
+        self.application_id = '109159928286372133834'
+
+    def get_headers(self):
+        """
+        Методо инициализации заголовка для запорсов
+        @return: словарь заголовков
+        """
+        return {
+            'Content-Type': 'application/json',
+            'Authorization': 'OAuth {}'.format(self.token)
+        }
+
+    def _get_upload_link(self, disk_file_path):
+        """
+        Функция получения ссылки на загрузку файла из локальной директории
+        @param disk_file_path: локальный путь файла
+        @return: ссылка на загрузку
+        """
+        headers = self.get_headers()
+        params = {"path": disk_file_path, "overwrite": "true"}
+        response = requests.get(self.url, headers=headers, params=params)
+        return response.json()
+
+    def upload_file_to_disk(self, disk_file_path, filename):
+        """
+        Функция загрузки локального файла на сетевой ресурс
+        @param disk_file_path: локальная папка файл
+        @param filename: имя файла
+        @return: результат загрузки файла
+        """
+        href = self._get_upload_link(disk_file_path=disk_file_path).get("href", "")
+        response = requests.put(href, data=open(filename, 'rb'))
         return {'code': response.status_code, 'text': response.text}
 
 
