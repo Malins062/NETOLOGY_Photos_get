@@ -1,8 +1,9 @@
 import requests
 import hashlib
 import os
+import json
 
-from google.oauth2 import service_account
+# from google.oauth2 import service_account
 
 
 class ClientApi:
@@ -267,6 +268,7 @@ class YaDiskUser(ClientApi):
     """
     def __init__(self, url, token, version=''):
         super().__init__(url, token, version)
+        self.url_upload_file = self.url + '/' + self.version + '/disk/resources/upload'
 
     def get_headers(self):
         """
@@ -286,7 +288,7 @@ class YaDiskUser(ClientApi):
         """
         headers = self.get_headers()
         params = {"path": disk_file_path, "overwrite": "true"}
-        response = requests.get(self.url, headers=headers, params=params)
+        response = requests.get(self.url_upload_file, headers=headers, params=params)
         return response.json()
 
     def upload_file_to_disk(self, disk_file_path, filename):
@@ -309,7 +311,7 @@ class YaDiskUser(ClientApi):
         """
         headers = self.get_headers()
         params = {"path": disk_path, "url": url}
-        response = requests.post(url=self.url, headers=headers, params=params)
+        response = requests.post(url=self.url_upload_file, headers=headers, params=params)
         return {'code': response.status_code, 'text': response.text}
 
 
@@ -319,8 +321,11 @@ class GoogleDriveUser(ClientApi):
     """
     def __init__(self, url, token, version=''):
         super().__init__(url, token, version)
-        self.key_id = 'e80d3bac3aced3a06184a9df460c76b3ceee2a20'
+        self.secret_key = '1072306907567-c4b8sgtbmli2kdl509tkaj7jp1klc9na.apps.googleusercontent.com'
+        self.key_id = '1072306907567-obs5gnc9j953nnanc1b02ja7v1tpinl0.apps.googleusercontent.com'
+        self.token = self.key_id
         self.application_id = '109159928286372133834'
+        self.url_upload_file = self.url + '/' + self.version + '/files?uploadType=multipart'
 
     def get_headers(self):
         """
@@ -328,8 +333,9 @@ class GoogleDriveUser(ClientApi):
         @return: словарь заголовков
         """
         return {
-            'Content-Type': 'application/json',
-            'Authorization': 'OAuth {}'.format(self.token)
+            # 'Content-Type': 'application/json',
+            'Authorization': 'Bearer {}'.format(self.token),
+            'client_id': '1072306907567-obs5gnc9j953nnanc1b02ja7v1tpinl0.apps.googleusercontent.com'
         }
 
     def _get_upload_link(self, disk_file_path):
@@ -343,6 +349,25 @@ class GoogleDriveUser(ClientApi):
         response = requests.get(self.url, headers=headers, params=params)
         return response.json()
 
+    def upload_url_to_disk(self, disk_path, url):
+        """
+        Метод загрузки файла из интернета на Яндекс диск методом post
+        @param disk_path: путь к доступной папке на Яндекс диске
+        @param url: ссылка файла в сети интернет
+        @return: словарь с кодом ответа и текстом {'code': '', text: ''}
+        """
+        para = {
+            'title': 'image_url.jpg',
+            # "parents": [{"id": "root"}, {"id": "### folder ID ###"}]
+            'parents': [{'id': 'root'}]
+        }
+        files = {
+            'data': ('metadata', json.dumps(para), 'application/json; charset=UTF-8'),
+            'file': requests.get(url).content
+        }
+        response = requests.post(self.url_upload_file, headers=self.get_headers(), files=files)
+        return {'code': response.status_code, 'text': response.text}
+
     def upload_file_to_disk(self, disk_file_path, filename):
         """
         Функция загрузки локального файла на сетевой ресурс
@@ -350,8 +375,19 @@ class GoogleDriveUser(ClientApi):
         @param filename: имя файла
         @return: результат загрузки файла
         """
-        href = self._get_upload_link(disk_file_path=disk_file_path).get("href", "")
-        response = requests.put(href, data=open(filename, 'rb'))
+        para = {
+            'title': 'image_url.jpg',
+            # "parents": [{"id": "root"}, {"id": "### folder ID ###"}]
+            'parents': [{'id': 'root'}]
+        }
+        files = {
+            'data': ('metadata', json.dumps(para), 'application/json; charset=UTF-8'),
+            'file': requests.get('image_url').content
+        }
+        response = requests.post(self.url_upload_file, headers=self.get_headers(), files=files)
+
+        # href = self._get_upload_link(disk_file_path=disk_file_path).get("href", "")
+        # response = requests.put(href, data=open(filename, 'rb'))
         return {'code': response.status_code, 'text': response.text}
 
 

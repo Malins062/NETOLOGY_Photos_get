@@ -12,11 +12,11 @@ TITLE_PROGRAM = '--- РЕЗЕРВНОЕ КОПИРОВАНИЕ ФОТОМАТЕ�
 # Список допустимых команд программы, их описание и назначение необходимых параметров для каждого пункта
 commands = [['Выберите ресурс назначения копирования фотографий:',
              {'1': {'menu_cmd': 1, 'menu_title': 'Яндекс диск;', 'menu_api': 'YaDiskUser',
-                    'upload': 'upload_url_to_disk',
-                    'name': 'Яндекс диск', 'url': 'https://cloud-api.yandex.net/v1/disk/resources/upload'},
-              '2': {'menu_cmd': 2, 'menu_title': 'Google drive (в процессе разработки);', 'menu_api': 'GoogleDiskUser',
-                    'upload': 'upload_file_to_disk',
-                    'name': 'GoogleDrive API', 'url': 'https://www.googleapis.com/auth/drive'},
+                    'upload': 'upload_url_to_disk', 'version': 'v1',
+                    'name': 'Яндекс диск', 'url': 'https://cloud-api.yandex.net'},
+              '2': {'menu_cmd': 2, 'menu_title': 'Google drive (в процессе разработки);', 'menu_api': 'GoogleDriveUser',
+                    'upload': 'upload_url_to_disk', 'version': 'v2',
+                    'name': 'GoogleDrive API', 'url': 'https://www.googleapis.com/upload/drive'},
               '0': {'menu_cmd': 0, 'menu_title': 'выход из программы.\n'}
               }],
             ['Выберите источник копирования фотографий:',
@@ -145,10 +145,11 @@ def main(cmd):
                 # Проверка куда будут передоваться файлы, если на Google drive,
                 # то через отдельное скачивание на локальный ресурс
                 # if status_command['destination']['menu_cmd'] == 2:
-                if not download_files(status_command['destination']):
-                    continue
-                else:
-                    print()
+
+                # if not download_files(status_command['destination']):
+                #     continue
+                # else:
+                #     print()
 
                 # Передача файлов на ресурс
                 upload_files(status_command['destination'])
@@ -205,7 +206,7 @@ def upload_files(data):
     bar.next()
 
     #  Создание клиента API для импорта фотографий
-    client = getattr(api_services, data["menu_api"])(data['url'], data['token'])
+    client = getattr(api_services, data["menu_api"])(data['url'], data['token'], data['version'])
 
     # Загрузка файлов
     for f in data['files']:
@@ -306,6 +307,7 @@ def input_data_for_write(data):
         return False
 
     data['destination']['token']='AQAAAAACs0c5AADLW8Q8CcqRaU41gHCd6u19yBk'
+
     # Ввод каталога на конечном ресурсе для загрузки фотографий
     if not input_value(data["destination"], 'path_disk', 'Введите каталог загрузки файлов '):
         return False
