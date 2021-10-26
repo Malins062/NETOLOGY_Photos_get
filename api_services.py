@@ -2,12 +2,11 @@ import requests
 import hashlib
 import os
 import json
-# import google.oauth2.credentials
-# import google_auth_oauthlib.flow
-# from google.oauth2 import service_account
-# from googleapiclient.http import MediaIoBaseDownload,MediaFileUpload
+
 from googleapiclient.discovery import build
-from google.oauth2.service_account import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
 
 
 class ClientApi:
@@ -326,91 +325,32 @@ class GoogleDriveUser(ClientApi):
     def __init__(self, url, token, version=''):
         super().__init__(url, token, version)
         self.url_upload_file = self.url + '/' + self.version + '/files?uploadType=multipart'
+        self.scopes = ['https://www.googleapis.com/auth/drive.metadata.readonly']
+        self.token = 'client_secret.json'
 
-    def get_service(api_name, api_version, scopes, key_file_location):
-        """Get a service that communicates to a Google API.
+        SCOPES = "https://www.googleapis.com/auth/drive"
+        CLIENT_SECRET_FILE = "client_secret.json"
+        APPLICATION_NAME = "test"
+        authInst = auth.auth(SCOPES, CLIENT_SECRET_FILE, APPLICATION_NAME)
+        credentials = authInst.getCredentials()
+        http = credentials.authorize(httplib2.Http())
+        drive_serivce = discovery.build('drive', 'v3', credentials=credentials)
 
-        Args:
-            api_name: The name of the api to connect to.
-            api_version: The api version to connect to.
-            scopes: A list auth scopes to authorize for the application.
-            key_file_location: The path to a valid service account JSON key file.
-
-        Returns:
-            A service that is connected to the specified API.
-        """
-
-        credentials = Credentials.from_json_keyfile_name(
-            key_file_location, scopes=scopes)
-
-        # Build the service object.
-        service = build(api_name, api_version, credentials=credentials)
-        return service
-
-    def get_first_profile_id(service):
-        # Use the Analytics service object to get the first profile id.
-
-        # Get a list of all Google Analytics accounts for this user
-        accounts = service.management().accounts().list().execute()
-
-        if accounts.get('items'):
-            # Get the first Google Analytics account.
-            account = accounts.get('items')[0].get('id')
-
-            # Get a list of all the properties for the first account.
-            properties = service.management().webproperties().list(
-                accountId=account).execute()
-
-            if properties.get('items'):
-                # Get the first property id.
-                property = properties.get('items')[0].get('id')
-
-                # Get a list of all views (profiles) for the first property.
-                profiles = service.management().profiles().list(
-                    accountId=account,
-                    webPropertyId=property).execute()
-
-                if profiles.get('items'):
-                    # return the first view (profile) id.
-                    return profiles.get('items')[0].get('id')
-
-        return None
-
-    def get_results(service, profile_id):
-        # Use the Analytics Service Object to query the Core Reporting API
-        # for the number of sessions within the past seven days.
-        return service.data().ga().get(
-            ids='ga:' + profile_id,
-            start_date='7daysAgo',
-            end_date='today',
-            metrics='ga:sessions').execute()
-
-    def print_results(results):
-        # Print data nicely for the user.
-        if results:
-            print
-            'View (Profile):', results.get('profileInfo').get('profileName')
-            print
-            'Total Sessions:', results.get('rows')[0][0]
-
-        else:
-            print
-            'No results found'
-
-    def main_do(self):
-        # Define the auth scopes to request.
-        scope = 'https://www.googleapis.com/auth/analytics.readonly'
-        key_file_location = self.token
-
-        # Authenticate and construct service.
-        service = get_service(
-            api_name='analytics',
-            api_version='v3',
-            scopes=[scope],
-            key_file_location=key_file_location)
-
-        profile_id = get_first_profile_id(service)
-        print_results(get_results(service, profile_id))
+        # creds = None
+        # if os.path.exists(self.token):
+        #     creds = Credentials.from_authorized_user_file(self.token, self.scopes)
+        # # If there are no (valid) credentials available, let the user log in.
+        # if not creds or not creds.valid:
+        #     if creds and creds.expired and creds.refresh_token:
+        #         creds.refresh(Request())
+        #     else:
+        #         flow = InstalledAppFlow.from_client_secrets_file('credentials.json', self.scopes)
+        #         creds = flow.run_local_server(port=0)
+        #     # Save the credentials for the next run
+        #     with open('token.json', 'w') as token:
+        #         token.write(creds.to_json())
+        # service = build('drive', 'v3', credentials=creds)
+        print(service)
 
     def get_headers(self):
         """
