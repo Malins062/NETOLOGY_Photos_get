@@ -2,11 +2,9 @@ import requests
 import hashlib
 import os
 import json
-
+from google.oauth2 import service_account
+from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
 from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
 
 
 class ClientApi:
@@ -325,73 +323,26 @@ class GoogleDriveUser(ClientApi):
     def __init__(self, url, token, version=''):
         super().__init__(url, token, version)
         self.url_upload_file = self.url + '/' + self.version + '/files?uploadType=multipart'
-        self.scopes = ['https://www.googleapis.com/auth/drive.metadata.readonly']
-        self.token = 'client_secret.json'
+        self.mime_type_folder = 'application/vnd.google-apps.folder'
+        self.mime_type_photo = 'image/jpeg'
+        self.scopes = [url]
+        # Аунтентификация и авторизация в Google API
+        self.credentials = service_account.Credentials.from_service_account_file(
+            self.token, scopes=self.scopes)
+        self.service = build('drive', self.version, credentials=self.credentials)
+        # print(self.service)
+        # results = self.service.files().list(pageSize=10,
+        #                                     fields='nextPageToken, files(id, name, mimeType)').execute()
+        # print(results)
 
-        SCOPES = "https://www.googleapis.com/auth/drive"
-        CLIENT_SECRET_FILE = "client_secret.json"
-        APPLICATION_NAME = "test"
-        authInst = auth.auth(SCOPES, CLIENT_SECRET_FILE, APPLICATION_NAME)
-        credentials = authInst.getCredentials()
-        http = credentials.authorize(httplib2.Http())
-        drive_serivce = discovery.build('drive', 'v3', credentials=credentials)
-
-        # creds = None
-        # if os.path.exists(self.token):
-        #     creds = Credentials.from_authorized_user_file(self.token, self.scopes)
-        # # If there are no (valid) credentials available, let the user log in.
-        # if not creds or not creds.valid:
-        #     if creds and creds.expired and creds.refresh_token:
-        #         creds.refresh(Request())
-        #     else:
-        #         flow = InstalledAppFlow.from_client_secrets_file('credentials.json', self.scopes)
-        #         creds = flow.run_local_server(port=0)
-        #     # Save the credentials for the next run
-        #     with open('token.json', 'w') as token:
-        #         token.write(creds.to_json())
-        # service = build('drive', 'v3', credentials=creds)
-        print(service)
-
-    def get_headers(self):
-        """
-        Методо инициализации заголовка для запорсов
-        @return: словарь заголовков
-        """
-        return {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer {}'.format(self.token),
-            # 'client_id': '1072306907567-obs5gnc9j953nnanc1b02ja7v1tpinl0.apps.googleusercontent.com'
-        }
-
-    def _get_upload_link(self, disk_file_path):
-        """
-        Функция получения ссылки на загрузку файла из локальной директории
-        @param disk_file_path: локальный путь файла
-        @return: ссылка на загрузку
-        """
-        headers = self.get_headers()
-        params = {"path": disk_file_path, "overwrite": "true"}
-        response = requests.get(self.url, headers=headers, params=params)
-        return response.json()
-
-    def upload_url_to_disk(self, disk_path, url):
-        """
-        Метод загрузки файла из интернета на Яндекс диск методом post
-        @param disk_path: путь к доступной папке на Яндекс диске
-        @param url: ссылка файла в сети интернет
-        @return: словарь с кодом ответа и текстом {'code': '', text: ''}
-        """
-        para = {
-            'title': 'image_url.jpg',
-            # "parents": [{"id": "root"}, {"id": "### folder ID ###"}]
-            'parents': [{'id': 'root'}]
-        }
-        files = {
-            'data': ('metadata', json.dumps(para), 'application/json; charset=UTF-8'),
-            'file': requests.get(url).content
-        }
-        response = requests.post(self.url_upload_file, headers=self.get_headers(), files=files)
-        return {'code': response.status_code, 'text': response.text}
+    def _get_folder_id(self, folder_name):
+        results = self.service.files().list(pageSize=10,
+                                            fields='nextPageToken, files(id, name, mimeType)').execute()
+        for files in results.get('files', []):
+            if files.get('name', False) == folder_name and files.get('mimeType', False) == self.mime_type_folder and \
+                    files.get('id', False):
+                return files['id']
+        return False
 
     def upload_file_to_disk(self, disk_file_path, filename):
         """
@@ -400,20 +351,11 @@ class GoogleDriveUser(ClientApi):
         @param filename: имя файла
         @return: результат загрузки файла
         """
-        para = {
-            'title': 'image_url.jpg',
-            # "parents": [{"id": "root"}, {"id": "### folder ID ###"}]
-            'parents': [{'id': 'root'}]
-        }
-        files = {
-            'data': ('metadata', json.dumps(para), 'application/json; charset=UTF-8'),
-            'file': requests.get('image_url').content
-        }
-        response = requests.post(self.url_upload_file, headers=self.get_headers(), files=files)
+        folder_id = (self._get_folder_id(disk_file_path) if disk_file_path != '' else 'root')
+        if not folder_id:
+            return {'code': disk_file_path, 'text': 'Папка не найдена'}
 
-        # href = self._get_upload_link(disk_file_path=disk_file_path).get("href", "")
-        # response = requests.put(href, data=open(filename, 'rb'))
-        return {'code': response.status_code, 'text': response.text}
+        print(folder_id)
 
 
 def download_photo(url, disk_file_path):

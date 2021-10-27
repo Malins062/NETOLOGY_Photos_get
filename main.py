@@ -15,8 +15,8 @@ commands = [['Выберите ресурс назначения копиров�
                     'upload': 'upload_url_to_disk', 'version': 'v1',
                     'name': 'Яндекс диск', 'url': 'https://cloud-api.yandex.net'},
               '2': {'menu_cmd': 2, 'menu_title': 'Google drive (в процессе разработки);', 'menu_api': 'GoogleDriveUser',
-                    'upload': 'upload_url_to_disk', 'version': 'v2',
-                    'name': 'GoogleDrive API', 'url': 'https://www.googleapis.com/upload/drive'},
+                    'upload': 'upload_file_to_disk', 'version': 'v3',
+                    'name': 'GoogleDrive API', 'url': 'https://www.googleapis.com/auth/drive'},
               '0': {'menu_cmd': 0, 'menu_title': 'выход из программы.\n'}
               }],
             ['Выберите источник копирования фотографий:',
@@ -144,12 +144,8 @@ def main(cmd):
 
                 # Проверка куда будут передоваться файлы, если на Google drive,
                 # то через отдельное скачивание на локальный ресурс
-                # if status_command['destination']['menu_cmd'] == 2:
-
-                # if not download_files(status_command['destination']):
-                #     continue
-                # else:
-                #     print()
+                if status_command['destination']['menu_cmd'] == 2 and not download_files(status_command['destination']):
+                    continue
 
                 # Передача файлов на ресурс
                 upload_files(status_command['destination'])
@@ -306,7 +302,7 @@ def input_data_for_write(data):
     if not input_value(data["destination"], 'token', 'Введите TOKEN пользователя ', '*'):
         return False
 
-    data['destination']['token']='AQAAAAACs0c5AADLW8Q8CcqRaU41gHCd6u19yBk'
+    data['destination']['token'] = 'credentials.json'
 
     # Ввод каталога на конечном ресурсе для загрузки фотографий
     if not input_value(data["destination"], 'path_disk', 'Введите каталог загрузки файлов '):
