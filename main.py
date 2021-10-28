@@ -7,14 +7,14 @@ from stdiomask import getpass
 import api_services
 
 # Название программы, выводимое на экран
-TITLE_PROGRAM = '--- РЕЗЕРВНОЕ КОПИРОВАНИЕ ФОТОМАТЕРИАЛОВ НА ОБЛАЧНЫЙ СЕРВИС ---'
+TITLE_PROGRAM = '--- РЕЗЕРВНОЕ КОПИРОВАНИЕ ФОТОМАТЕРИАЛОВ НА ОБЛАЧНЫЙ СЕРВИС (вресия 1.0) ---'
 
 # Список допустимых команд программы, их описание и назначение необходимых параметров для каждого пункта
 commands = [['Выберите ресурс назначения копирования фотографий:',
              {'1': {'menu_cmd': 1, 'menu_title': 'Яндекс диск;', 'menu_api': 'YaDiskUser',
                     'upload': 'upload_url_to_disk', 'version': 'v1',
                     'name': 'Яндекс диск', 'url': 'https://cloud-api.yandex.net'},
-              '2': {'menu_cmd': 2, 'menu_title': 'Google drive (в процессе разработки);', 'menu_api': 'GoogleDriveUser',
+              '2': {'menu_cmd': 2, 'menu_title': 'Google drive;', 'menu_api': 'GoogleDriveUser',
                     'upload': 'upload_file_to_disk', 'version': 'v3',
                     'name': 'GoogleDrive API', 'url': 'https://www.googleapis.com/auth/drive'},
               '0': {'menu_cmd': 0, 'menu_title': 'выход из программы.\n'}
@@ -152,6 +152,11 @@ def main(cmd):
                 # Передача файлов на ресурс
                 upload_files(status_command['destination'])
 
+                # Проверка если файлы,передавались на Google drive,
+                # то очистить папку TEMP
+                if status_command['destination']['menu_cmd'] == 2:
+                    delete_files_in_dir(temp_path)
+
                 # Сохранение данных в журнал
                 if save_file_json(status_command['destination']['files'], file_log_name):
                     print(f'Список обработанных файлов сохранен в json-файл: {file_log_name}.')
@@ -160,6 +165,22 @@ def main(cmd):
 
             input('\nДля продолжения работы нажмите клавишу "Enter"...')
     return print('\nДо встречи!')
+
+
+def delete_files_in_dir(folder):
+    """
+    Функция очистки директории folder
+    :param folder: папка для удаления в ней всех файлов
+    :return:
+    """
+    if folder == '/' or folder == "\\":
+        return
+    else:
+        for root, dirs, files in os.walk(folder, topdown=False):
+            for name in files:
+                os.remove(os.path.join(root, name))
+            for name in dirs:
+                os.rmdir(os.path.join(root, name))
 
 
 def download_files(data):

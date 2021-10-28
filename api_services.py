@@ -336,6 +336,11 @@ class GoogleDriveUser(ClientApi):
         self.service = build('drive', self.version, credentials=self.credentials)
 
     def _get_folder_id(self, folder_name):
+        """
+        Функция поиска папки и получения ID на Google диске
+        :param folder_name: название каталога для поиска
+        :return: ID-каталога или ошибка
+        """
         page_token = None
         while True:
             response = self.service.files().list(pageSize=10,
@@ -354,14 +359,6 @@ class GoogleDriveUser(ClientApi):
 
         return {'code': 404, 'text': f'Папка "{folder_name}" не найдена на Google drive'}
 
-    def create_folder(self, folder_name):
-        file_metadata = {
-            'name': folder_name,
-            'mimetype': self.mime_type_folder
-        }
-        result = self.service.files().create(body=file_metadata, fields='id').execute()
-        return result
-
     def upload_file_to_disk(self, disk_file_path, filename):
         """
         Функция загрузки локального файла на сетевой ресурс
@@ -370,13 +367,9 @@ class GoogleDriveUser(ClientApi):
         @return: результат загрузки файла
         """
         folder = os.path.dirname(disk_file_path)
-        # folder_id = {}
-        if folder == '/':
-            # Поиск id папки на диске
-            folder_id = self.service.files().get("root").Execute()
-        else:
-            # Поиск id папки на диске
-            folder_id = self._get_folder_id(folder)
+
+        # Поиск id папки на диске
+        folder_id = self._get_folder_id(folder)
 
         if folder_id.get('code', False):
             return {'code': folder_id['code'], 'text': folder_id['text']}
@@ -387,10 +380,13 @@ class GoogleDriveUser(ClientApi):
             'parents': [folder_id.get('id', 'root')]
         }
 
-        media = MediaFileUpload(filename, mimetype=self.mime_type_photo, resumable=True)
-        response = self.service.files().create(body=file_metadata, media_body=media, fields='id').execute()
-        if response.get('id', False):
-            response['Code'] = 201
+        try:
+            media = MediaFileUpload(filename, mimetype=self.mime_type_photo, resumable=True)
+            response = self.service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+            if response.get('id', False):
+                response['Code'] = 201
+        except Exception as Ex:
+            return {'code': -1, 'text': Ex}
         return {'code': response['Code'], 'text': response['id']}
 
 
