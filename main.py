@@ -71,7 +71,9 @@ def input_menu_command(menu, command: dict, appointment):
         print(f'\t{key_command} – {name_command["menu_title"]}')
 
     print('Введите команду:', end=' ')
-    code_command = str(input().strip()).lower()
+    code_command = ''
+    while not code_command:
+        code_command = str(input().strip()).lower()
 
     # Проверка на существование команды меню
     command[appointment] = menu[1].get(code_command, {'error_command': code_command})
@@ -187,7 +189,7 @@ def download_files(data):
     print(f'\nРезультаты скачивания файлов локально в папку - {temp_path}:')
     print_list_files(data['files'], ['file_name', 'height', 'width', 'log_upload'])
 
-    return input_value(data, 'menu_cmd', 'Для выгрузки файлов в сетевой ресурс нажмите Enter ')
+    return input_value(data, 'temp', 'Для выгрузки файлов в сетевой ресурс нажмите Enter ')
 
 
 def upload_files(data):
@@ -379,7 +381,6 @@ def print_list_files(list_files, columns):
     @return: вывод данных в виде таблицы
     """
     frame = pd.DataFrame(list_files, columns=columns)
-    # frame['url'] = frame['url'].str.slice(0, 20)
     frame.rename(columns={'file_name': 'Наименование файла',
                           'width': 'Ширина',
                           'height': 'Высота',

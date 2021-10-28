@@ -1,9 +1,8 @@
 import requests
 import hashlib
 import os
-import json
 from google.oauth2 import service_account
-from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
+from googleapiclient.http import MediaFileUpload
 from googleapiclient.discovery import build
 
 
@@ -11,6 +10,7 @@ class ClientApi:
     """
     Общий класс для API клиента
     """
+
     def __init__(self, url, token, version=''):
         self.url = url
         self.token = token
@@ -62,6 +62,7 @@ class VKUser(ClientApi):
     """
     Класс для работы с API Вконтакте
     """
+
     def __init__(self, url, token, version=''):
         super().__init__(url, token, version)
         self.params = {
@@ -126,6 +127,7 @@ class OKUser(ClientApi):
     """
     Класс для работы с API Одноклассники
     """
+
     def __init__(self, url, token, version=''):
         super().__init__(url, token, version)
         self.session_secret_key = token
@@ -206,6 +208,7 @@ class InstagramUser(ClientApi):
     """
     Класс для работы с API Instagram
     """
+
     def __init__(self, url, token, version=''):
         super().__init__(url, token, version)
 
@@ -267,6 +270,7 @@ class YaDiskUser(ClientApi):
     """
     Класс для работы с сервисом Яндекс диск
     """
+
     def __init__(self, url, token, version=''):
         super().__init__(url, token, version)
         self.url_upload_file = self.url + '/' + self.version + '/disk/resources/upload'
@@ -320,9 +324,9 @@ class GoogleDriveUser(ClientApi):
     """
     Класс для работы с сервисом Google Drive
     """
+
     def __init__(self, url, token, version=''):
         super().__init__(url, token, version)
-        self.url_upload_file = self.url + '/' + self.version + '/files?uploadType=multipart'
         self.mime_type_folder = 'application/vnd.google-apps.folder'
         self.mime_type_photo = 'image/jpeg'
         self.scopes = [url]
@@ -330,19 +334,33 @@ class GoogleDriveUser(ClientApi):
         self.credentials = service_account.Credentials.from_service_account_file(
             self.token, scopes=self.scopes)
         self.service = build('drive', self.version, credentials=self.credentials)
-        # print(self.service)
-        # results = self.service.files().list(pageSize=10,
-        #                                     fields='nextPageToken, files(id, name, mimeType)').execute()
-        # print(results)
 
     def _get_folder_id(self, folder_name):
-        results = self.service.files().list(pageSize=10,
-                                            fields='nextPageToken, files(id, name, mimeType)').execute()
-        for files in results.get('files', []):
-            if files.get('name', False) == folder_name and files.get('mimeType', False) == self.mime_type_folder and \
-                    files.get('id', False):
-                return files['id']
-        return False
+        page_token = None
+        while True:
+            response = self.service.files().list(pageSize=10,
+                                                 fields='nextPageToken, files(id, name, mimeType)',
+                                                 pageToken=page_token).execute()
+
+            for files in response.get('files', []):
+                if files.get('name', False) == folder_name and \
+                        files.get('mimeType', False) == self.mime_type_folder and \
+                        files.get('id', False):
+                    return files
+
+            page_token = response.get('nextPageToken', None)
+            if page_token is None:
+                break
+
+        return {'code': 404, 'text': f'Папка "{folder_name}" не найдена на Google drive'}
+
+    def create_folder(self, folder_name):
+        file_metadata = {
+            'name': folder_name,
+            'mimetype': self.mime_type_folder
+        }
+        result = self.service.files().create(body=file_metadata, fields='id').execute()
+        return result
 
     def upload_file_to_disk(self, disk_file_path, filename):
         """
@@ -351,11 +369,29 @@ class GoogleDriveUser(ClientApi):
         @param filename: имя файла
         @return: результат загрузки файла
         """
-        folder_id = (self._get_folder_id(disk_file_path) if disk_file_path != '' else 'root')
-        if not folder_id:
-            return {'code': disk_file_path, 'text': 'Папка не найдена'}
+        folder = os.path.dirname(disk_file_path)
+        # folder_id = {}
+        if folder == '/':
+            # Поиск id папки на диске
+            folder_id = self.service.files().get("root").Execute()
+        else:
+            # Поиск id папки на диске
+            folder_id = self._get_folder_id(folder)
 
-        print(folder_id)
+        if folder_id.get('code', False):
+            return {'code': folder_id['code'], 'text': folder_id['text']}
+
+        file_name = os.path.basename(filename)
+        file_metadata = {
+            'name': file_name,
+            'parents': [folder_id.get('id', 'root')]
+        }
+
+        media = MediaFileUpload(filename, mimetype=self.mime_type_photo, resumable=True)
+        response = self.service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+        if response.get('id', False):
+            response['Code'] = 201
+        return {'code': response['Code'], 'text': response['id']}
 
 
 def download_photo(url, disk_file_path):
