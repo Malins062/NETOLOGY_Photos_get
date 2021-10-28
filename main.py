@@ -303,9 +303,6 @@ def input_data_for_read(resource):
     if not input_value(resource, 'token', 'Введите TOKEN пользователя', '*'):
         return False
 
-    resource['id'] = '552934290'
-    resource['token'] = '958eb5d439726565e9333aa30e50e0f937ee432e927f0dbd541c541887d919a7c56f95c04217915c32008'
-
     return True
 
 
@@ -324,8 +321,6 @@ def input_data_for_write(data):
     # Ввод ТОКЕНА пользователя
     if not input_value(data["destination"], 'token', 'Введите TOKEN пользователя ', '*'):
         return False
-
-    data['destination']['token'] = 'credentials.json'
 
     # Ввод каталога на конечном ресурсе для загрузки фотографий
     if not input_value(data["destination"], 'path_disk', 'Введите каталог загрузки файлов '):

@@ -343,9 +343,12 @@ class GoogleDriveUser(ClientApi):
         """
         page_token = None
         while True:
-            response = self.service.files().list(pageSize=10,
-                                                 fields='nextPageToken, files(id, name, mimeType)',
-                                                 pageToken=page_token).execute()
+            try:
+                response = self.service.files().list(pageSize=10,
+                                                     fields='nextPageToken, files(id, name, mimeType)',
+                                                     pageToken=page_token).execute()
+            except Exception as Ex:
+                return {'code': -1, 'text': Ex}
 
             for files in response.get('files', []):
                 if files.get('name', False) == folder_name and \
